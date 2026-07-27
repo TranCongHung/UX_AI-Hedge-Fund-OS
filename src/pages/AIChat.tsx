@@ -73,7 +73,7 @@ export default function AIChat() {
   );
 
   return (
-    <div className="flex h-[calc(100vh-6rem)] gap-4">
+    <div className="flex h-[calc(100vh-9.5rem)] gap-4">
       {/* Main Chat Area */}
       <Card className="flex-1 flex flex-col bg-card border-border overflow-hidden">
         <div className="flex items-center justify-between p-4 border-b border-border bg-card/80 backdrop-blur-sm z-10">

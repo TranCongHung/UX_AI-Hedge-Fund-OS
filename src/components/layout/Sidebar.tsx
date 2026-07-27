@@ -28,22 +28,17 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, category: 'Platform' },
-  { name: 'AI Chat', path: '/chat', icon: MessageSquare, category: 'Platform' },
   { name: 'Research', path: '/research', icon: LineChart, category: 'Platform' },
-  { name: 'Markets', path: '#', icon: BarChart2, disabled: true, category: 'Platform' },
-  { name: 'Signals', path: '/signals', icon: Activity, category: 'Platform' },
-  { name: 'Strategies', path: '#', icon: TrendingUp, disabled: true, category: 'Platform' },
-  { name: 'Backtesting', path: '/backtesting', icon: TestTube, category: 'Platform' },
+  { name: 'Markets', path: '/markets', icon: BarChart2, category: 'Platform' },
   { name: 'Portfolio', path: '/portfolio', icon: Briefcase, category: 'Platform' },
-  { name: 'Watchlist', path: '#', icon: Eye, disabled: true, category: 'Platform' },
-  { name: 'News', path: '/news', icon: Newspaper, category: 'Platform' },
-  { name: 'Agents', path: '#', icon: Bot, disabled: true, category: 'Platform' },
-  { name: 'Workflows', path: '/workflows', icon: Workflow, category: 'Infrastructure' },
-  { name: 'n8n', path: '#', icon: TerminalSquare, disabled: true, category: 'Infrastructure' },
-  { name: 'Ollama', path: '/ollama', icon: Database, category: 'Infrastructure' },
-  { name: 'Logs', path: '#', icon: ScrollText, disabled: true, category: 'Infrastructure' },
+  { name: 'Backtesting', path: '/backtesting', icon: TestTube, category: 'Platform' },
+  { name: 'Watchlist', path: '/watchlist', icon: Eye, category: 'Platform' },
+  { name: 'AI Chat', path: '/chat', icon: MessageSquare, category: 'Platform' },
+  { name: 'AI Agents', path: '/agents', icon: Bot, category: 'Infrastructure' },
+  { name: 'Workflow Monitor', path: '/workflows', icon: Workflow, category: 'Infrastructure' },
+  { name: 'Database', path: '/database', icon: Database, category: 'Infrastructure' },
+  { name: 'Reports', path: '/reports', icon: ScrollText, category: 'Infrastructure' },
   { name: 'Settings', path: '/settings', icon: Settings, category: 'Infrastructure' },
-  { name: 'Admin', path: '/admin', icon: Settings, disabled: false, category: 'Infrastructure' },
 ];
 
 export default function Sidebar() {
@@ -88,39 +83,24 @@ export default function Sidebar() {
                     {item.category}
                   </div>
                 )}
-                {item.disabled ? (
-                  <Tooltip>
-                    <TooltipTrigger render={
-                      <div className={cn(
-                        "flex items-center gap-3 px-3 py-2 rounded-sm text-sm text-muted-foreground opacity-50 cursor-not-allowed",
-                        !sidebarOpen && "justify-center"
-                      )}>
-                        <item.icon className="w-4 h-4 shrink-0" />
-                        {sidebarOpen && <span>{item.name}</span>}
-                      </div>
-                    } />
-                    <TooltipContent side="right">Coming Soon</TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <Tooltip>
-                    <TooltipTrigger render={
-                      <NavLink
-                        to={item.path}
-                        className={({ isActive }) => cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-sm text-sm transition-colors",
-                          isActive 
-                            ? "bg-secondary border-l-2 border-primary text-foreground" 
-                            : "text-muted-foreground hover:bg-secondary hover:text-foreground border-l-2 border-transparent",
-                          !sidebarOpen && "justify-center border-l-0"
-                        )}
-                      >
-                        <item.icon className="w-4 h-4 shrink-0" />
-                        {sidebarOpen && <span>{item.name}</span>}
-                      </NavLink>
-                    } />
-                    {!sidebarOpen && <TooltipContent side="right">{item.name}</TooltipContent>}
-                  </Tooltip>
-                )}
+                <Tooltip>
+                  <TooltipTrigger render={
+                    <NavLink
+                      to={item.path}
+                      className={({ isActive }) => cn(
+                        "flex items-center gap-3 px-3 py-2 rounded-sm text-sm transition-colors",
+                        isActive 
+                           ? "bg-secondary border-l-2 border-primary text-foreground" 
+                           : "text-muted-foreground hover:bg-secondary hover:text-foreground border-l-2 border-transparent",
+                        !sidebarOpen && "justify-center border-l-0"
+                      )}
+                    >
+                      <item.icon className="w-4 h-4 shrink-0" />
+                      {sidebarOpen && <span>{item.name}</span>}
+                    </NavLink>
+                  } />
+                  {!sidebarOpen && <TooltipContent side="right">{item.name}</TooltipContent>}
+                </Tooltip>
               </React.Fragment>
             );
           })}

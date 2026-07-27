@@ -2,8 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
-import { TrendingUp, TrendingDown, Minus, AlertCircle } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { TrendingUp, TrendingDown, Minus, AlertCircle, BrainCircuit, Activity, Globe, Scale, Database } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 const mockPriceData = Array.from({ length: 50 }).map((_, i) => ({
   time: i,
@@ -12,201 +13,206 @@ const mockPriceData = Array.from({ length: 50 }).map((_, i) => ({
 
 export default function Research() {
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-6rem)] gap-4 pb-4">
-      {/* Left: Market List */}
-      <Card className="w-full lg:w-64 flex flex-col bg-card border-border shrink-0 h-64 lg:h-full">
-        <div className="p-3 border-b border-border">
-          <input 
-            type="text" 
-            placeholder="Search markets..." 
-            className="w-full bg-background border border-border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50"
-          />
-        </div>
-        <ScrollArea className="flex-1">
-          <div className="flex flex-col">
-            {[
-              { sym: 'BTC/USD', price: '64,230', change: '+2.4%', up: true, active: true },
-              { sym: 'ETH/USD', price: '3,420', change: '-0.8%', up: false },
-              { sym: 'SOL/USD', price: '142.10', change: '+5.2%', up: true },
-              { sym: 'NVDA', price: '128.50', change: '+1.2%', up: true },
-              { sym: 'AAPL', price: '210.40', change: '-0.3%', up: false },
-              { sym: 'EUR/USD', price: '1.0842', change: '-0.1%', up: false },
-              { sym: 'GOLD', price: '2,340', change: '+0.5%', up: true },
-            ].map((m) => (
-              <button 
-                key={m.sym}
-                className={`flex items-center justify-between p-3 border-b border-border/50 hover:bg-secondary/50 transition-colors text-left ${m.active ? 'bg-secondary border-l-2 border-l-primary' : ''}`}
-              >
-                <div>
-                  <div className="font-semibold text-sm">{m.sym}</div>
-                  <div className="text-xs text-muted-foreground">Vol: 1.2B</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium">{m.price}</div>
-                  <div className={`text-xs ${m.up ? 'text-success' : 'text-danger'}`}>{m.change}</div>
-                </div>
-              </button>
-            ))}
+    <div className="flex flex-col h-full gap-4 pb-4">
+      {/* Header Bar */}
+      <div className="flex items-center justify-between p-4 bg-card border border-border rounded-lg shrink-0">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold tracking-tight">BTC/USD</h2>
+            <Badge variant="outline" className="bg-success/10 text-success border-success/20">LONG</Badge>
           </div>
-        </ScrollArea>
-      </Card>
-
-      {/* Center: AI Research & Charts */}
-      <Card className="flex-1 flex flex-col bg-card border-border min-h-[400px]">
-        <div className="p-4 border-b border-border flex justify-between items-center bg-card/50 backdrop-blur-sm">
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold">BTC/USD</h2>
-              <Badge variant="outline" className="bg-success/10 text-success border-success/20">BULLISH</Badge>
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">AI Conf: 85%</Badge>
+          <div className="h-8 w-px bg-border hidden md:block"></div>
+          <div className="hidden md:block">
+            <div className="text-sm font-medium text-muted-foreground">Current Price</div>
+            <div className="text-lg font-mono text-foreground">$64,230.00</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-right hidden sm:block">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Overall AI Confidence</div>
+            <div className="flex items-center gap-2">
+              <Progress value={85} className="w-24 h-2" />
+              <span className="text-sm font-mono text-primary">85%</span>
             </div>
-            <div className="text-muted-foreground text-sm mt-1">Bitcoin / US Dollar • Binance</div>
           </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold text-success">$64,230.00</div>
-            <div className="text-sm text-success">+2.4% (24h)</div>
+          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
+            <BrainCircuit className="w-5 h-5 text-primary" />
           </div>
         </div>
+      </div>
 
-        <Tabs defaultValue="chart" className="flex-1 flex flex-col">
-          <div className="px-4 pt-2 border-b border-border">
-            <TabsList className="bg-transparent h-10 p-0 border-b-0 space-x-4">
-              <TabsTrigger value="chart" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 h-10">Chart View</TabsTrigger>
-              <TabsTrigger value="ai" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 h-10 flex gap-2">
-                <AlertCircle className="w-4 h-4" /> AI Analysis
-              </TabsTrigger>
-              <TabsTrigger value="news" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 h-10">News Flow</TabsTrigger>
-            </TabsList>
-          </div>
-          
-          <TabsContent value="chart" className="flex-1 p-4 m-0">
-            <div className="w-full h-full bg-background rounded-lg border border-border p-2 relative">
-              {/* Chart Placeholder simulating TradingView */}
-              <div className="absolute top-4 left-4 flex gap-2 z-10">
-                <Badge variant="secondary" className="bg-card">1D</Badge>
-                <Badge variant="secondary" className="bg-card text-success">EMA(20)</Badge>
-                <Badge variant="secondary" className="bg-card text-warning">EMA(50)</Badge>
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 flex-1 min-h-0">
+        
+        {/* Left Column: Manager & Signals */}
+        <div className="xl:col-span-1 flex flex-col gap-4 min-h-0">
+          {/* Manager Decision */}
+          <Card className="bg-card border-border shadow-none">
+            <CardHeader className="pb-3 border-b border-border/50">
+              <div className="flex items-center gap-2">
+                <Scale className="w-4 h-4 text-primary" />
+                <CardTitle className="text-sm font-semibold">Investment Committee</CardTitle>
               </div>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={mockPriceData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#222" />
-                  <XAxis dataKey="time" hide />
-                  <YAxis domain={['auto', 'auto']} stroke="#a1a1aa" fontSize={12} tickLine={false} axisLine={false} orientation="right" />
-                  <Line type="monotone" dataKey="price" stroke="#22c55e" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="ai" className="flex-1 p-4 m-0 overflow-auto custom-scrollbar">
-            <div className="prose prose-invert max-w-none">
-              <h3 className="text-lg font-semibold text-primary">Quantitative Summary</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                The current market structure for BTC/USD indicates a strong continuation pattern following the recent breakout above the $62k resistance zone. Order book analysis shows significant bid liquidity resting at $63,500, providing a solid floor.
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-3 h-3 rounded-full bg-success animate-pulse" />
+                <span className="text-xl font-bold text-success tracking-tight">STRONG BUY</span>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                The consensus across all sub-agents indicates a high probability of upward continuation. Macro conditions are easing, while technicals show a confirmed breakout with strong momentum.
               </p>
-              
-              <div className="grid grid-cols-2 gap-4 mt-6">
-                <div className="p-4 bg-secondary/30 rounded-lg border border-border">
-                  <h4 className="text-sm font-medium mb-2">Bull Case (Probability: 65%)</h4>
-                  <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
-                    <li>ETF inflows remain structurally positive.</li>
-                    <li>Macro environment shifting towards rate cuts.</li>
-                    <li>SOPR metric reset, indicating exhaustion of short-term sellers.</li>
-                  </ul>
-                </div>
-                <div className="p-4 bg-secondary/30 rounded-lg border border-border">
-                  <h4 className="text-sm font-medium mb-2">Bear Case (Probability: 35%)</h4>
-                  <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
-                    <li>Miner selling pressure post-halving.</li>
-                    <li>Potential regulatory headwinds in EU.</li>
-                    <li>Overextended funding rates in perp markets.</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </Card>
-
-      {/* Right: Indicators */}
-      <Card className="w-full lg:w-72 flex flex-col bg-card border-border shrink-0 overflow-hidden h-[500px] lg:h-full">
-        <CardHeader className="py-3 border-b border-border bg-card/50">
-          <CardTitle className="text-sm">Technical Indicators</CardTitle>
-        </CardHeader>
-        <ScrollArea className="flex-1">
-          <div className="p-4 space-y-6">
-            
-            <div className="space-y-3">
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase">Key Levels</h4>
-              <div className="flex justify-between items-center p-2 bg-background rounded border border-border">
-                <span className="text-sm">Resistance 1</span>
-                <span className="text-sm font-mono text-danger">$65,100</span>
-              </div>
-              <div className="flex justify-between items-center p-2 bg-background rounded border border-border">
-                <span className="text-sm">Support 1</span>
-                <span className="text-sm font-mono text-success">$62,800</span>
-              </div>
-              <div className="flex justify-between items-center p-2 bg-background rounded border border-border">
-                <span className="text-sm">Support 2</span>
-                <span className="text-sm font-mono text-success">$60,500</span>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase">Oscillators</h4>
               <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>RSI (14)</span>
-                  <span className="font-mono text-warning">68.5</span>
-                </div>
-                <div className="w-full bg-background rounded-full h-1.5">
-                  <div className="bg-warning h-1.5 rounded-full" style={{ width: '68.5%' }}></div>
-                </div>
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Key Catalysts</div>
+                <ul className="text-sm space-y-2">
+                  <li className="flex items-start gap-2">
+                    <span className="text-success mt-0.5">•</span>
+                    <span>ETF inflows accelerated by 24% WoW.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-success mt-0.5">•</span>
+                    <span>DXY breaking below 104 support level.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-warning mt-0.5">•</span>
+                    <span>Funding rates elevated (monitor for flush).</span>
+                  </li>
+                </ul>
               </div>
-              <div className="flex justify-between items-center text-sm pt-2">
-                <span>MACD (12,26)</span>
-                <span className="font-mono text-success flex items-center"><TrendingUp className="w-3 h-3 mr-1" /> Bullish</span>
-              </div>
-              <div className="flex justify-between items-center text-sm pt-2">
-                <span>Momentum</span>
-                <span className="font-mono text-success flex items-center"><TrendingUp className="w-3 h-3 mr-1" /> High</span>
-              </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            <div className="space-y-3">
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase">Moving Averages</h4>
-              <div className="grid grid-cols-2 gap-2 text-sm text-center">
-                <div className="p-2 bg-success/10 text-success rounded border border-success/20">
-                  <div className="text-xs text-muted-foreground mb-1">EMA 20</div>
-                  <div className="font-mono">Buy</div>
+          {/* Sub-Agent Signals */}
+          <Card className="flex-1 flex flex-col bg-card border-border shadow-none overflow-hidden min-h-[300px]">
+            <CardHeader className="py-3 border-b border-border/50 bg-secondary/20">
+              <CardTitle className="text-sm font-semibold flex items-center justify-between">
+                <span>Agent Signals</span>
+                <span className="text-xs font-normal text-muted-foreground">Real-time</span>
+              </CardTitle>
+            </CardHeader>
+            <ScrollArea className="flex-1">
+              <div className="p-4 space-y-4">
+                {/* Tech Agent */}
+                <div className="p-3 bg-background rounded-lg border border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-blue-500" />
+                      <span className="text-sm font-semibold">Technical Agent</span>
+                    </div>
+                    <Badge variant="outline" className="text-success border-success/30 bg-success/10">BULLISH</Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Price action broke structure at $63.5K. RSI at 68 (not overbought). MACD histogram expanding.
+                  </div>
                 </div>
-                <div className="p-2 bg-success/10 text-success rounded border border-success/20">
-                  <div className="text-xs text-muted-foreground mb-1">EMA 50</div>
-                  <div className="font-mono">Buy</div>
+
+                {/* Macro Agent */}
+                <div className="p-3 bg-background rounded-lg border border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-purple-500" />
+                      <span className="text-sm font-semibold">Macro Agent</span>
+                    </div>
+                    <Badge variant="outline" className="text-success border-success/30 bg-success/10">BULLISH</Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Global liquidity index ticking up. Expected rate cut probabilities increased to 72% for September.
+                  </div>
                 </div>
-                <div className="p-2 bg-success/10 text-success rounded border border-success/20">
-                  <div className="text-xs text-muted-foreground mb-1">SMA 100</div>
-                  <div className="font-mono">Buy</div>
-                </div>
-                <div className="p-2 bg-secondary text-foreground rounded border border-border">
-                  <div className="text-xs text-muted-foreground mb-1">SMA 200</div>
-                  <div className="font-mono">Neutral</div>
+
+                {/* Sentiment Agent */}
+                <div className="p-3 bg-background rounded-lg border border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-orange-500" />
+                      <span className="text-sm font-semibold">Sentiment Agent</span>
+                    </div>
+                    <Badge variant="outline" className="text-warning border-warning/30 bg-warning/10">NEUTRAL</Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Social volume extremely high. Fear & Greed at 74 (Greed). High risk of retail trap, but institutional flow offsets it.
+                  </div>
                 </div>
               </div>
-            </div>
+            </ScrollArea>
+          </Card>
+        </div>
 
-            <div className="space-y-3 pt-2">
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase">Market Sentiment</h4>
-              <div className="p-4 bg-background rounded-xl border border-border text-center">
-                <div className="text-3xl font-bold text-success mb-1">74</div>
-                <div className="text-sm font-medium text-success">Greed</div>
-                <div className="text-xs text-muted-foreground mt-2">Fear & Greed Index</div>
+        {/* Right Column: Deep Dive & Data */}
+        <Card className="xl:col-span-2 flex flex-col bg-card border-border shadow-none min-h-[500px]">
+          <Tabs defaultValue="chart" className="flex-1 flex flex-col min-h-0">
+            <div className="px-4 pt-2 border-b border-border/50 bg-secondary/10">
+              <TabsList className="bg-transparent h-10 p-0 border-b-0 space-x-6">
+                <TabsTrigger value="chart" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-0 h-10 text-muted-foreground">
+                  Technical Chart
+                </TabsTrigger>
+                <TabsTrigger value="data" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-0 h-10 text-muted-foreground">
+                  Raw Data & Metrics
+                </TabsTrigger>
+                <TabsTrigger value="history" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-0 h-10 text-muted-foreground">
+                  Historical Research
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            
+            <TabsContent value="chart" className="flex-1 p-4 m-0 flex flex-col min-h-0">
+              <div className="w-full flex-1 bg-background rounded-lg border border-border p-4 relative min-h-[300px]">
+                <div className="absolute top-4 left-4 flex gap-2 z-10">
+                  <Badge variant="secondary" className="bg-card border-border">1D</Badge>
+                  <Badge variant="secondary" className="bg-card border-border text-success">EMA(20)</Badge>
+                  <Badge variant="secondary" className="bg-card border-border text-warning">EMA(50)</Badge>
+                </div>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={mockPriceData}>
+                    <defs>
+                      <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={false} />
+                    <XAxis dataKey="time" hide />
+                    <YAxis domain={['auto', 'auto']} stroke="#52525b" fontSize={11} tickLine={false} axisLine={false} orientation="right" tickFormatter={(val) => `$${val.toLocaleString()}`} />
+                    <Area type="monotone" dataKey="price" stroke="#22c55e" strokeWidth={2} fillOpacity={1} fill="url(#colorPrice)" isAnimationActive={false} />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
-            </div>
+              
+              <div className="grid grid-cols-4 gap-4 mt-4 shrink-0">
+                <div className="p-3 bg-secondary/30 rounded border border-border">
+                  <div className="text-xs text-muted-foreground mb-1">RSI (14)</div>
+                  <div className="text-lg font-mono text-warning">68.5</div>
+                </div>
+                <div className="p-3 bg-secondary/30 rounded border border-border">
+                  <div className="text-xs text-muted-foreground mb-1">MACD</div>
+                  <div className="text-lg font-mono text-success">Bullish</div>
+                </div>
+                <div className="p-3 bg-secondary/30 rounded border border-border">
+                  <div className="text-xs text-muted-foreground mb-1">Support</div>
+                  <div className="text-lg font-mono">$62.8K</div>
+                </div>
+                <div className="p-3 bg-secondary/30 rounded border border-border">
+                  <div className="text-xs text-muted-foreground mb-1">Resistance</div>
+                  <div className="text-lg font-mono">$65.1K</div>
+                </div>
+              </div>
+            </TabsContent>
 
-          </div>
-        </ScrollArea>
-      </Card>
+            <TabsContent value="data" className="flex-1 p-0 m-0">
+               <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center h-full">
+                 <Database className="w-12 h-12 mb-4 opacity-20" />
+                 <p>Raw quantitative metrics will be populated here by the DB connector.</p>
+               </div>
+            </TabsContent>
+            
+            <TabsContent value="history" className="flex-1 p-0 m-0">
+               <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center h-full">
+                 <p>Historical research reports coming soon.</p>
+               </div>
+            </TabsContent>
+          </Tabs>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { fetchAiChat } from '../lib/api';
 import { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,21 +26,36 @@ export default function AIChat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isGenerating]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!input.trim()) return;
-    const newMessage = { role: 'user', content: input };
+    const currentInput = input;
+    const newMessage = { role: 'user', content: currentInput };
     setMessages(prev => [...prev, newMessage]);
     setInput('');
     setIsGenerating(true);
     
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      const res = await fetchAiChat(currentInput);
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: data.reply || 'No reply received.'
+        }]);
+      } else {
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: 'Error: Connection failed.'
+        }]);
+      }
+    } catch(err) {
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: 'This is a simulated response. The backend is not connected yet, but you can see how the scroll works.' 
+        content: 'Error: Could not fetch from AI backend. Make sure n8n is running and CORS is enabled.'
       }]);
+    } finally {
       setIsGenerating(false);
-    }, 1500);
+    }
   };
 
   const ChatHistoryContent = () => (

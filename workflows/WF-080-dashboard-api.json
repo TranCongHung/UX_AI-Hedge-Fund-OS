@@ -1,0 +1,385 @@
+{
+  "name": "WF-080-dashboard-api",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "dashboard-status",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "GET, OPTIONS"
+              }
+            ]
+          }
+        }
+      },
+      "id": "webhook-status",
+      "name": "Webhook Dashboard Status",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -900,
+        100
+      ],
+      "webhookId": "dashboard-status-001"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT symbol, score, cross_direction FROM watchlist WHERE active = true ORDER BY score DESC;"
+      },
+      "id": "pg-watchlist",
+      "name": "Get Watchlist",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -660,
+        -60
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "AIQRP Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DISTINCT ON (workflow_id) workflow_id, status, created_at, duration_ms FROM workflow_logs ORDER BY workflow_id, created_at DESC;"
+      },
+      "id": "pg-runs",
+      "name": "Get Latest Workflow Runs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -660,
+        20
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "AIQRP Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COUNT(*) as count FROM signals WHERE created_at::date = CURRENT_DATE;"
+      },
+      "id": "pg-count",
+      "name": "Get Signals Today Count",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -660,
+        100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "AIQRP Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT symbol, total_trades, wins, losses, win_rate_pct, avg_rr_achieved FROM backtest_summary ORDER BY created_at DESC;"
+      },
+      "id": "pg-backtest",
+      "name": "Get Backtest Summary",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -660,
+        180
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "AIQRP Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 4
+      },
+      "id": "merge-status",
+      "name": "Merge Status Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        -420,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const watchlist = $('Get Watchlist').all().map(i => i.json);\nconst workflowRuns = $('Get Latest Workflow Runs').all().map(i => i.json);\nconst signalsToday = $('Get Signals Today Count').first().json.count;\nconst backtest = $('Get Backtest Summary').all().map(i => i.json);\n\nreturn [{ json: {\n  postgres_online: true,\n  watchlist,\n  watchlist_count: watchlist.length,\n  workflow_runs: workflowRuns,\n  signals_today_count: parseInt(signalsToday, 10),\n  backtest_summary: backtest\n} }];"
+      },
+      "id": "code-status",
+      "name": "Build Status Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-status",
+      "name": "Respond Status",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        20,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "dashboard-signals",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "GET, OPTIONS"
+              }
+            ]
+          }
+        }
+      },
+      "id": "webhook-signals",
+      "name": "Webhook Dashboard Signals",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -900,
+        340
+      ],
+      "webhookId": "dashboard-signals-001"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DISTINCT ON (symbol) symbol, signal, reason, price_at_signal, created_at FROM signals ORDER BY symbol, created_at DESC;"
+      },
+      "id": "pg-signals",
+      "name": "Get Latest Signals",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -660,
+        340
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "AIQRP Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nreturn [{ json: { signals: rows } }];"
+      },
+      "id": "code-signals",
+      "name": "Build Signals Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-signals",
+      "name": "Respond Signals",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        -200,
+        340
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Dashboard Status": {
+      "main": [
+        [
+          {
+            "node": "Get Watchlist",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Latest Workflow Runs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Signals Today Count",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Backtest Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Watchlist": {
+      "main": [
+        [
+          {
+            "node": "Merge Status Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Latest Workflow Runs": {
+      "main": [
+        [
+          {
+            "node": "Merge Status Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get Signals Today Count": {
+      "main": [
+        [
+          {
+            "node": "Merge Status Data",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Get Backtest Summary": {
+      "main": [
+        [
+          {
+            "node": "Merge Status Data",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Merge Status Data": {
+      "main": [
+        [
+          {
+            "node": "Build Status Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Status Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Dashboard Signals": {
+      "main": [
+        [
+          {
+            "node": "Get Latest Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Latest Signals": {
+      "main": [
+        [
+          {
+            "node": "Build Signals Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Signals Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

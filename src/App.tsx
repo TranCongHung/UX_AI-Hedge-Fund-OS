@@ -20,11 +20,10 @@ import Database from '@/pages/Database';
 import Reports from '@/pages/Reports';
 import Settings from '@/pages/Settings';
 
-import { ErrorBoundary } from "./ErrorBoundary";
 
 export default function App() {
   return (
-    <ErrorBoundary><TooltipProvider>
+    <TooltipProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<AppLayout />}>
@@ -48,6 +47,6 @@ export default function App() {
           </Route>
         </Routes>
       </BrowserRouter>
-    </TooltipProvider></ErrorBoundary>
+    </TooltipProvider>
   );
 }

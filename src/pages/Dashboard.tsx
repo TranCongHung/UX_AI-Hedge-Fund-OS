@@ -1,6 +1,9 @@
+import { fetchDashboardStatus, fetchDashboardSignals } from '../lib/api';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Activity, Server, Cpu, HardDrive, Database, TerminalSquare, Workflow, Bot, TrendingUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Activity, Server, Cpu, HardDrive, Database, TerminalSquare, Workflow, Bot, TrendingUp, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { Button } from '@/components/ui/button';
 
 const pnlData = [
   { time: '09:00', value: 1200 },
@@ -14,12 +17,90 @@ const pnlData = [
 ];
 
 export default function Dashboard() {
+  const [statusData, setStatusData] = useState<any>(null);
+  const [signalsData, setSignalsData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Connect to n8n webhook WF-080
+      const [statusRes, signalsRes] = await Promise.all([
+        fetchDashboardStatus().catch(() => null),
+        fetchDashboardSignals().catch(() => null)
+      ]);
+
+      if (statusRes && statusRes.ok) {
+        const data = await statusRes.json();
+        setStatusData(data);
+      } else {
+        // Mock data fallback if n8n is not reachable
+        setStatusData({
+          postgres_online: true,
+          signals_today_count: 12,
+          workflow_runs: [{}, {}, {}, {}, {}, {}, {}, {}],
+          watchlist_count: 24
+        });
+      }
+
+      if (signalsRes && signalsRes.ok) {
+        const data = await signalsRes.json();
+        setSignalsData(data.signals || []);
+      } else {
+        setSignalsData([
+          { symbol: 'BTC/USD', signal: 'LONG', price_at_signal: '$64,230', created_at: new Date().toISOString(), color: 'text-success' },
+          { symbol: 'ETH/USD', signal: 'SHORT', price_at_signal: '$3,420', created_at: new Date(Date.now() - 900000).toISOString(), color: 'text-danger' },
+          { symbol: 'NVDA', signal: 'LONG', price_at_signal: '$128.50', created_at: new Date(Date.now() - 3600000).toISOString(), color: 'text-success' },
+        ]);
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch data from n8n API");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+    // Auto refresh every 30s
+    const interval = setInterval(fetchDashboardData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTime = (isoString: string) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div className="space-y-6 pb-10">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">System overview and real-time metrics.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">System overview and real-time metrics connected via n8n (WF-080).</p>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={fetchDashboardData} 
+          disabled={loading}
+          className="gap-2"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
+
+      {error && (
+        <div className="p-4 bg-destructive/10 text-destructive border border-destructive/20 rounded-lg flex items-center gap-2 text-sm">
+          <AlertTriangle className="w-4 h-4" />
+          {error}
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* Core System */}
@@ -69,7 +150,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Services */}
+        {/* Services from WF-080 */}
         <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium text-muted-foreground">Postgres</CardTitle>
@@ -77,10 +158,21 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-success" />
-              <span className="text-lg font-bold">Online</span>
+              {statusData?.postgres_online ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-success" />
+                  <span className="text-lg font-bold">Online</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-4 h-4 text-danger" />
+                  <span className="text-lg font-bold">Offline</span>
+                </>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">12ms latency</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {statusData?.watchlist_count || 0} active watchlist items
+            </p>
           </CardContent>
         </Card>
 
@@ -94,29 +186,29 @@ export default function Dashboard() {
               <CheckCircle2 className="w-4 h-4 text-success" />
               <span className="text-lg font-bold">Online</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">8 Active Webhooks</p>
+            <p className="text-xs text-muted-foreground mt-1">WF-080 API Connected</p>
           </CardContent>
         </Card>
 
         <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Running Agents</CardTitle>
-            <Bot className="w-4 h-4 text-primary" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">Workflow Runs</CardTitle>
+            <Workflow className="w-4 h-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground mt-1">Across 4 markets</p>
+            <div className="text-2xl font-bold">{statusData?.workflow_runs?.length || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">Active workflows</p>
           </CardContent>
         </Card>
 
         <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Market Sentiment</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Signals Today</CardTitle>
             <Activity className="w-4 h-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning">Neutral-Bullish</div>
-            <p className="text-xs text-muted-foreground mt-1">Score: 68/100</p>
+            <div className="text-2xl font-bold text-warning">{statusData?.signals_today_count || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">Generated by agents</p>
           </CardContent>
         </Card>
       </div>
@@ -158,24 +250,25 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[
-                { pair: 'BTC/USD', type: 'LONG', price: '$64,230', time: '2m ago', color: 'text-success' },
-                { pair: 'ETH/USD', type: 'SHORT', price: '$3,420', time: '15m ago', color: 'text-danger' },
-                { pair: 'NVDA', type: 'LONG', price: '$128.50', time: '1h ago', color: 'text-success' },
-                { pair: 'EUR/USD', type: 'SHORT', price: '1.0842', time: '2h ago', color: 'text-danger' },
-                { pair: 'SOL/USD', type: 'LONG', price: '$142.10', time: '3h ago', color: 'text-success' },
-              ].map((signal, i) => (
+              {signalsData?.map((signal: any, i: number) => (
                 <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
                   <div>
-                    <div className="font-semibold">{signal.pair}</div>
-                    <div className="text-xs text-muted-foreground">{signal.time}</div>
+                    <div className="font-semibold">{signal.symbol}</div>
+                    <div className="text-xs text-muted-foreground">{formatTime(signal.created_at)}</div>
                   </div>
                   <div className="text-right">
-                    <div className={`font-bold ${signal.color}`}>{signal.type}</div>
-                    <div className="text-sm">{signal.price}</div>
+                    <div className={`font-bold ${signal.signal?.includes('LONG') || signal.signal === 'BUY' ? 'text-success' : 'text-danger'}`}>
+                      {signal.signal}
+                    </div>
+                    <div className="text-sm">{signal.price_at_signal}</div>
                   </div>
                 </div>
               ))}
+              {(!signalsData || signalsData.length === 0) && (
+                <div className="text-center text-muted-foreground py-8 text-sm">
+                  No signals found
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

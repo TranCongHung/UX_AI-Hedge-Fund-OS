@@ -1,5 +1,6 @@
 import { fetchDashboardSignals } from '../lib/api';
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { LineChart, Search, RefreshCw, AlertTriangle, TrendingUp, TrendingDown, Target, BrainCircuit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ export default function Research() {
   const [signals, setSignals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const fetchData = async () => {
     setLoading(true);
@@ -106,11 +108,14 @@ export default function Research() {
                     </p>
                   </div>
                   <div className="mt-6 flex items-center gap-4">
-                    <Button variant="outline" size="sm" className="gap-2">
+                    <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+                      alert(`${signal.symbol} added to Watchlist!`);
+                      navigate('/watchlist');
+                    }}>
                       <Target className="w-4 h-4" />
                       Add to Watchlist
                     </Button>
-                    <Button size="sm" className="gap-2">
+                    <Button size="sm" className="gap-2" onClick={() => navigate('/markets')}>
                       <LineChart className="w-4 h-4" />
                       View Chart
                     </Button>

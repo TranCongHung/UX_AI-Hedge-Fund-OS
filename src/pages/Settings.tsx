@@ -44,12 +44,20 @@ export default function Settings() {
               
               <div className="p-4 bg-warning/10 text-warning border border-warning/20 rounded-lg flex gap-3 text-sm">
                 <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-                <div className="space-y-2">
-                  <p className="font-bold">Important: Mixed Content & CORS</p>
-                  <p>Because this web app runs on <strong>HTTPS</strong>, your browser will block requests to <code>http://localhost:5678</code>.</p>
-                  <p><strong>Solution:</strong> Expose your local n8n via a secure tunnel like <strong>ngrok</strong>:</p>
-                  <code className="block bg-background p-2 rounded border border-border">ngrok http 5678</code>
-                  <p>Then paste the <code>https://...ngrok-free.app</code> URL below.</p>
+                <div className="space-y-3">
+                  <p className="font-bold">n8n Connection Notes</p>
+                  
+                  <div>
+                    <p className="font-semibold text-foreground">1. Running locally? (http://localhost:3000)</p>
+                    <p className="text-muted-foreground mt-1">If you run this app locally, you can simply use <code>http://localhost:5678</code> below. Make sure to enable CORS in n8n by setting the environment variables: <code>N8N_CORS_ERROR_CHECK_ENABLED=false</code> (or configure specific allowed origins).</p>
+                  </div>
+                  
+                  <div>
+                    <p className="font-semibold text-foreground">2. Running on AI Studio? (HTTPS)</p>
+                    <p className="text-muted-foreground mt-1">Because AI Studio runs on HTTPS, your browser will block requests to local HTTP (Mixed Content). <strong>Solution:</strong> Expose your local n8n via a secure tunnel like <strong>ngrok</strong>:</p>
+                    <code className="block bg-background p-2 rounded border border-border mt-1">ngrok http 5678</code>
+                    <p className="text-muted-foreground mt-1">Then paste the <code>https://...ngrok-free.app</code> URL below.</p>
+                  </div>
                 </div>
               </div>
 

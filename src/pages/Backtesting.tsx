@@ -1,5 +1,6 @@
 import { fetchDashboardStatus } from '../lib/api';
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TestTube, TrendingUp, TrendingDown, Percent, Activity, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ export default function Backtesting() {
   const [backtests, setBacktests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const fetchData = async () => {
     setLoading(true);
@@ -106,7 +108,7 @@ export default function Backtesting() {
                   <span className="text-muted-foreground">Avg Risk/Reward Achieved: </span>
                   <span className="font-bold">1:{Number(bt.avg_rr_achieved).toFixed(2)}</span>
                 </div>
-                <Button variant="secondary" size="sm">View Detailed Log</Button>
+                <Button variant="secondary" size="sm" onClick={() => navigate('/database')}>View Detailed Log</Button>
               </div>
             </CardContent>
           </Card>

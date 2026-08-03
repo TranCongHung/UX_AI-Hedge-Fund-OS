@@ -14,15 +14,15 @@ export default function AppLayout() {
       <Sidebar />
       <div
         className={cn(
-          "flex flex-col flex-1 h-full transition-all duration-300 ease-in-out",
-          sidebarOpen ? "md:ml-56" : "md:ml-16",
+          "flex flex-col flex-1 h-full transition-all duration-200 ease-in-out",
+          sidebarOpen ? "md:ml-60" : "md:ml-14",
           rightPanelOpen ? "lg:mr-80" : "mr-0"
         )}
       >
         <TopNav />
-        {/* We add pb-8 here to clear the status bar height */}
-        <main className="flex-1 overflow-auto p-4 md:p-6 custom-scrollbar pb-10">
-          <div className="mx-auto max-w-7xl h-full">
+        {/* Main Content Area: Use 8px spacing based padding (p-4 = 16px, p-6 = 24px) */}
+        <main className="flex-1 overflow-y-auto scrollbar-none bg-background/50">
+          <div className="mx-auto w-full max-w-screen-2xl p-4 md:p-6 lg:p-8 min-h-full">
             <Outlet />
           </div>
         </main>

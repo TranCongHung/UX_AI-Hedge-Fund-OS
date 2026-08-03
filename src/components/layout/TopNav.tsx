@@ -1,59 +1,95 @@
-import { Bell, Search, Menu, BrainCircuit } from 'lucide-react';
+import React from 'react';
+import { Bell, Search, Menu, BrainCircuit, Zap, Terminal, Activity, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useAppStore } from '@/store';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 export default function TopNav() {
   const { toggleSidebar, toggleRightPanel, rightPanelOpen } = useAppStore();
   const location = useLocation();
   
-  // Format the current path to display as title
-  const getTitle = () => {
-    const path = location.pathname.split('/')[1];
-    if (!path) return 'Dashboard';
-    return path.charAt(0).toUpperCase() + path.slice(1).replace('-', ' ');
+  const getBreadcrumbs = () => {
+    const parts = location.pathname.split('/').filter(Boolean);
+    return parts.map((part, i) => ({
+      name: part.charAt(0).toUpperCase() + part.slice(1).replace('-', ' '),
+      path: '/' + parts.slice(0, i + 1).join('/')
+    }));
   };
 
+  const breadcrumbs = getBreadcrumbs();
+
   return (
-    <header className="h-[60px] border-b border-border bg-background/80 backdrop-blur-sm flex items-center justify-between px-6 shrink-0 sticky top-0 z-30">
-      <div className="flex items-center gap-4 lg:gap-8">
-        <Button variant="ghost" size="icon" className="md:hidden shrink-0" onClick={toggleSidebar}>
-          <Menu className="w-5 h-5" />
+    <header className="h-14 border-b border-border bg-background/50 backdrop-blur-xl flex items-center justify-between px-4 lg:px-6 shrink-0 sticky top-0 z-40">
+      <div className="flex items-center gap-4 lg:gap-6">
+        <Button variant="ghost" size="icon" className="md:hidden h-8 w-8" onClick={toggleSidebar}>
+          <Menu className="w-4 h-4" />
         </Button>
-        <h2 className="text-lg font-semibold tracking-tight hidden sm:block text-foreground">{getTitle()}</h2>
         
-        <div className="hidden lg:flex items-center gap-6 border-l border-border pl-6">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">BTC/USD</span>
-            <span className="text-sm font-mono">$67,432.12</span>
-            <span className="text-xs text-emerald-500 font-medium">+2.41%</span>
+        {/* Professional Breadcrumbs */}
+        <nav className="hidden sm:flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
+          <Link to="/" className="hover:text-foreground transition-colors">OS</Link>
+          {breadcrumbs.map((bc, i) => (
+            <React.Fragment key={bc.path}>
+              <ChevronRight className="w-3.5 h-3.5 opacity-40" />
+              <Link 
+                to={bc.path} 
+                className={cn(
+                  "hover:text-foreground transition-colors",
+                  i === breadcrumbs.length - 1 ? "text-foreground font-bold" : ""
+                )}
+              >
+                {bc.name}
+              </Link>
+            </React.Fragment>
+          ))}
+        </nav>
+        
+        {/* Live Tickers */}
+        <div className="hidden xl:flex items-center gap-5 border-l border-border pl-6 ml-2">
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wider font-mono">BTC</span>
+            <div className="flex items-baseline gap-1.5 font-mono">
+              <span className="text-sm font-bold">$67,432</span>
+              <span className="text-[10px] text-success font-bold">+2.4%</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">ETH/USD</span>
-            <span className="text-sm font-mono">$3,481.05</span>
-            <span className="text-xs text-rose-500 font-medium">-0.84%</span>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wider font-mono">NVDA</span>
+            <div className="flex items-baseline gap-1.5 font-mono">
+              <span className="text-sm font-bold">$128.45</span>
+              <span className="text-[10px] text-success font-bold">+3.1%</span>
+            </div>
           </div>
         </div>
       </div>
       
-      <div className="flex items-center gap-3 text-xs">
-        <div className="hidden sm:flex items-center gap-2 bg-secondary/30 px-3 py-1.5 rounded-full border border-border">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-muted-foreground font-medium">Llama-3-70b</span>
+      <div className="flex items-center gap-2 lg:gap-4">
+        {/* Model Status */}
+        <div className="hidden md:flex items-center gap-2.5 px-2.5 py-1 rounded-md bg-secondary/40 border border-border/50">
+          <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(37,99,235,0.4)] animate-pulse" />
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase">Model</span>
+            <span className="text-[11px] font-bold text-foreground font-mono">GPT-4o-RESEARCH</span>
+          </div>
         </div>
+
+        <div className="h-6 w-px bg-border mx-1" />
         
         <Button 
-          variant={rightPanelOpen ? "secondary" : "ghost"} 
+          variant="ghost" 
           size="sm" 
-          className="gap-2 hidden md:flex rounded-full border border-transparent hover:border-border"
+          className={cn(
+            "h-8 px-2.5 gap-2 transition-all rounded-md text-xs font-bold",
+            rightPanelOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
+          )}
           onClick={toggleRightPanel}
         >
-          <BrainCircuit className="w-4 h-4 text-primary" />
-          <span>Copilot</span>
+          <BrainCircuit className="w-4 h-4" />
+          <span className="hidden lg:inline uppercase tracking-tight">Copilot</span>
         </Button>
         
-        <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-xs font-bold border border-border shrink-0 ml-2">
+        <div className="h-8 w-8 bg-gradient-to-br from-primary to-indigo-600 rounded flex items-center justify-center text-[11px] font-bold text-white border border-border shadow-sm cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all">
           CH
         </div>
       </div>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { cn } from '@/lib/utils';
 import { fetchDashboardStatus, fetchDashboardSignals } from '../lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { 
@@ -245,6 +246,10 @@ export default function Dashboard() {
         fetchDashboardSignals().catch(() => null)
       ]);
 
+      if (!statusRes || !statusRes.ok || !signalsRes || !signalsRes.ok) {
+        setError('Research Cluster WF-080 (n8n) is currently unreachable. Displaying local Alpha-V4 snapshots.');
+      }
+
       if (statusRes && statusRes.ok) {
         const data = await statusRes.json();
         setStatus({
@@ -416,159 +421,154 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 1. KPI (4 Quant High-Density Performance & Infrastructure Cards) */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {/* KPI 1: Intraday PnL & Sharpe */}
-        <Card className="bg-card border-border shadow-xs">
-          <CardHeader className="flex flex-row items-center justify-between pb-1 pt-3 px-4 space-y-0">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Intraday Alpha PnL
-            </span>
-            <TrendingUp className="w-4 h-4 text-success" />
-          </CardHeader>
-          <CardContent className="px-4 pb-3 pt-1">
-            <div className="flex items-baseline justify-between">
-              <span className="text-xl font-bold font-mono text-success">+$31,250.00</span>
-              <span className="text-xs font-mono text-success bg-success/10 px-1.5 py-0.5 rounded border border-success/20">
-                +3.12%
-              </span>
+      {/* 1. KPI GRID (High Density Performance & Infrastructure Cards) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* KPI 1: Intraday PnL */}
+        <Card className="bg-card border-border shadow-xs overflow-hidden">
+          <div className="h-1 w-full bg-success" />
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Intraday Alpha PnL</span>
+              <TrendingUp className="w-3.5 h-3.5 text-success" />
             </div>
-            <div className="flex items-center justify-between mt-2 text-[11px] text-muted-foreground border-t border-border/60 pt-2 font-mono">
-              <span>Sharpe Ratio: 2.84</span>
-              <span>Max DD: -1.42%</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold font-mono tracking-tight text-foreground">+$31,250.00</span>
+              <span className="text-[10px] font-bold text-success font-mono">+3.12%</span>
+            </div>
+            <div className="mt-4 flex items-center justify-between text-[10px] font-mono text-muted-foreground/60 border-t border-border/40 pt-2">
+              <span>SHARPE: 2.84</span>
+              <span>MAX_DD: -1.42%</span>
             </div>
           </CardContent>
         </Card>
 
-        {/* KPI 2: Active Signals & Win Rate */}
-        <Card className="bg-card border-border shadow-xs">
-          <CardHeader className="flex flex-row items-center justify-between pb-1 pt-3 px-4 space-y-0">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Signals Today
-            </span>
-            <Activity className="w-4 h-4 text-primary" />
-          </CardHeader>
-          <CardContent className="px-4 pb-3 pt-1">
-            <div className="flex items-baseline justify-between">
-              <span className="text-xl font-bold font-mono text-foreground">{status.signalsTodayCount}</span>
-              <span className="text-xs font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20">
-                74.2% Win Rate
-              </span>
+        {/* KPI 2: Active Signals */}
+        <Card className="bg-card border-border shadow-xs overflow-hidden">
+          <div className="h-1 w-full bg-primary" />
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Signals Today</span>
+              <Activity className="w-3.5 h-3.5 text-primary" />
             </div>
-            <div className="flex items-center justify-between mt-2 text-[11px] text-muted-foreground border-t border-border/60 pt-2 font-mono">
-              <span>18 Long / 10 Short</span>
-              <span>Avg RR: 1:2.65</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold font-mono tracking-tight text-foreground">{status.signalsTodayCount}</span>
+              <span className="text-[10px] font-bold text-primary font-mono">74% WIN</span>
+            </div>
+            <div className="mt-4 flex items-center justify-between text-[10px] font-mono text-muted-foreground/60 border-t border-border/40 pt-2">
+              <span>L: 18 / S: 10</span>
+              <span>AVG_RR: 1:2.6</span>
             </div>
           </CardContent>
         </Card>
 
-        {/* KPI 3: AI Inference Engine Health */}
-        <Card className="bg-card border-border shadow-xs">
-          <CardHeader className="flex flex-row items-center justify-between pb-1 pt-3 px-4 space-y-0">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              AI Compute (Ollama/GPU)
-            </span>
-            <Cpu className="w-4 h-4 text-info" />
-          </CardHeader>
-          <CardContent className="px-4 pb-3 pt-1">
-            <div className="flex items-baseline justify-between">
-              <span className="text-xl font-bold font-mono text-foreground">14.2 ms</span>
-              <span className="text-xs font-mono text-info bg-info/10 px-1.5 py-0.5 rounded border border-info/20">
-                RTX 4090
-              </span>
+        {/* KPI 3: AI Compute */}
+        <Card className="bg-card border-border shadow-xs overflow-hidden">
+          <div className="h-1 w-full bg-info" />
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">AI Compute (GPU)</span>
+              <Cpu className="w-3.5 h-3.5 text-info" />
             </div>
-            <div className="flex items-center justify-between mt-2 text-[11px] text-muted-foreground border-t border-border/60 pt-2 font-mono">
-              <span>VRAM: 18.4 / 24 GB</span>
-              <span>Llama-3-70b Active</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold font-mono tracking-tight text-foreground">14.2ms</span>
+              <span className="text-[10px] font-bold text-success font-mono">OPTIMAL</span>
+            </div>
+            <div className="mt-4 flex items-center justify-between text-[10px] font-mono text-muted-foreground/60 border-t border-border/40 pt-2">
+              <span>VRAM: 18.4GB</span>
+              <span>LLAMA-3-70B</span>
             </div>
           </CardContent>
         </Card>
 
-        {/* KPI 4: Infrastructure & Webhook State */}
-        <Card className="bg-card border-border shadow-xs">
-          <CardHeader className="flex flex-row items-center justify-between pb-1 pt-3 px-4 space-y-0">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Database & Workflow
-            </span>
-            <Database className="w-4 h-4 text-success" />
-          </CardHeader>
-          <CardContent className="px-4 pb-3 pt-1">
-            <div className="flex items-baseline justify-between">
-              <span className="text-xl font-bold font-mono text-success">ONLINE</span>
-              <span className="text-xs font-mono text-success bg-success/10 px-1.5 py-0.5 rounded border border-success/20 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" />
-                Postgres + n8n
-              </span>
+        {/* KPI 4: Infrastructure */}
+        <Card className="bg-card border-border shadow-xs overflow-hidden">
+          <div className={`h-1 w-full ${status.n8nOnline && status.postgresOnline ? 'bg-success' : 'bg-warning'}`} />
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">System Clusters</span>
+              <Database className="w-3.5 h-3.5 text-muted-foreground" />
             </div>
-            <div className="flex items-center justify-between mt-2 text-[11px] text-muted-foreground border-t border-border/60 pt-2 font-mono">
-              <span>{status.activeWorkflows} Workflows Active</span>
-              <span>{status.watchlistCount} Watchlist Items</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold font-mono tracking-tight text-foreground">STABLE</span>
+              <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+            </div>
+            <div className="mt-4 flex items-center justify-between text-[10px] font-mono text-muted-foreground/60 border-t border-border/40 pt-2">
+              <span>FLOWS: {status.activeWorkflows}</span>
+              <span>SYNC: OK</span>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* 2. CHARTS (2 Recharts: Intraday Equity Curve vs Benchmarks + Signal Volume by Asset Class) */}
-      <div className="grid gap-4 lg:grid-cols-7">
-        {/* CHART 1: Area/Line chart comparing AI Strategy Equity vs BTC & S&P */}
-        <Card className="lg:col-span-4 bg-card border-border shadow-xs">
-          <CardHeader className="pb-2 pt-4 px-5">
+      {/* 2. CHARTS (Intraday Equity Curve vs Benchmarks + Signal Volume) */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* CHART 1: Area chart comparing AI Strategy Equity vs Benchmarks */}
+        <Card className="lg:col-span-2 bg-card border-border shadow-xs overflow-hidden">
+          <CardHeader className="pb-0 pt-4 px-5">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-sm font-semibold uppercase tracking-wider">
-                  Intraday Strategy Equity vs. Benchmarks
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Normalized to $1,000,000 baseline • 1-minute execution granularity
+                <div className="flex items-center gap-2 mb-1">
+                  <Activity className="w-3.5 h-3.5 text-primary" />
+                  <CardTitle className="text-[11px] font-bold uppercase tracking-[0.1em] text-foreground">
+                    Performance Attribution Analysis
+                  </CardTitle>
+                </div>
+                <CardDescription className="text-[10px] font-mono">
+                  Normalized Intraday Equity • Granularity: 60s • 100% Signal execution coverage
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-3 text-xs font-mono">
-                <span className="flex items-center gap-1.5 text-primary">
-                  <span className="w-2.5 h-2.5 rounded-xs bg-primary inline-block" />
-                  Alpha Engine
-                </span>
-                <span className="flex items-center gap-1.5 text-info">
-                  <span className="w-2.5 h-2.5 rounded-xs bg-info inline-block" />
-                  BTC/USD
-                </span>
+              <div className="flex items-center gap-4 text-[10px] font-mono font-bold">
+                <div className="flex items-center gap-1.5 text-primary">
+                  <div className="w-2 h-2 rounded-full bg-primary" />
+                  <span>ALPHA_V4</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-info">
+                  <div className="w-2 h-2 rounded-full bg-info" />
+                  <span>BTC_USD</span>
+                </div>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="px-3 pb-4">
-            <div className="h-[260px] w-full">
+          <CardContent className="px-1 pb-2 pt-6">
+            <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={defaultEquityData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <AreaChart data={defaultEquityData} margin={{ top: 0, right: 10, left: 10, bottom: 0 }}>
                   <defs>
                     <linearGradient id="alphaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="btcGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                      <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e222d" vertical={false} />
-                  <XAxis dataKey="time" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.4} />
+                  <XAxis 
+                    dataKey="time" 
+                    stroke="var(--color-muted-foreground)" 
+                    fontSize={9} 
+                    tickLine={false} 
+                    axisLine={false} 
+                    dy={10}
+                    fontFamily="JetBrains Mono"
+                  />
                   <YAxis
-                    stroke="#94a3b8"
-                    fontSize={11}
+                    stroke="var(--color-muted-foreground)"
+                    fontSize={9}
                     tickLine={false}
                     axisLine={false}
                     domain={['auto', 'auto']}
-                    tickFormatter={(val) => `$${(val / 1000).toFixed(0)}k`}
+                    fontFamily="JetBrains Mono"
+                    tickFormatter={(val) => `$${(val / 1000).toFixed(0)}K`}
                   />
                   <RechartsTooltip
-                    contentStyle={{ backgroundColor: '#101217', borderColor: '#1e222d', borderRadius: '6px' }}
-                    labelStyle={{ color: '#f8fafc', fontWeight: 600, fontSize: '12px' }}
-                    itemStyle={{ fontSize: '12px', fontFamily: 'JetBrains Mono' }}
-                    formatter={(val: number) => [`$${val.toLocaleString()}`, '']}
+                    contentStyle={{ backgroundColor: 'var(--color-popover)', borderColor: 'var(--color-border)', borderRadius: '4px', fontSize: '10px', padding: '8px' }}
+                    labelStyle={{ color: 'var(--color-foreground)', fontWeight: 800, marginBottom: '4px', fontFamily: 'JetBrains Mono' }}
+                    itemStyle={{ fontSize: '10px', fontFamily: 'JetBrains Mono', padding: '0px' }}
+                    cursor={{ stroke: 'var(--color-primary)', strokeWidth: 1, strokeDasharray: '4 4' }}
                   />
                   <Area
                     type="monotone"
                     dataKey="alphaStrategy"
-                    name="Alpha Engine"
-                    stroke="#2563eb"
+                    name="Alpha Strategy"
+                    stroke="var(--color-primary)"
                     strokeWidth={2}
                     fillOpacity={1}
                     fill="url(#alphaGrad)"
@@ -577,10 +577,10 @@ export default function Dashboard() {
                     type="monotone"
                     dataKey="benchmarkBTC"
                     name="BTC Benchmark"
-                    stroke="#06b6d4"
+                    stroke="var(--color-info)"
                     strokeWidth={1.5}
-                    fillOpacity={1}
-                    fill="url(#btcGrad)"
+                    strokeDasharray="5 5"
+                    fill="none"
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -588,35 +588,47 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* CHART 2: Bar Chart for Signal Volume & Activity by Asset Class */}
-        <Card className="lg:col-span-3 bg-card border-border shadow-xs">
-          <CardHeader className="pb-2 pt-4 px-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-semibold uppercase tracking-wider">
-                  Alpha Signal Volume by Asset Class
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Intraday distribution across Crypto, Equities & FX
-                </CardDescription>
-              </div>
+        {/* CHART 2: Bar Chart for Signal Volume */}
+        <Card className="lg:col-span-1 bg-card border-border shadow-xs overflow-hidden">
+          <CardHeader className="pb-0 pt-4 px-5">
+            <div className="flex items-center gap-2 mb-1">
+              <BarChart3 className="w-3.5 h-3.5 text-primary" />
+              <CardTitle className="text-[11px] font-bold uppercase tracking-[0.1em] text-foreground">
+                Signal Volume Matrix
+              </CardTitle>
             </div>
+            <CardDescription className="text-[10px] font-mono">
+              Cluster density across asset pools
+            </CardDescription>
           </CardHeader>
-          <CardContent className="px-3 pb-4">
-            <div className="h-[260px] w-full">
+          <CardContent className="px-2 pb-2 pt-8">
+            <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={defaultSignalVolume} margin={{ top: 10, right: 15, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e222d" vertical={false} />
-                  <XAxis dataKey="category" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-                  <RechartsTooltip
-                    contentStyle={{ backgroundColor: '#101217', borderColor: '#1e222d', borderRadius: '6px' }}
-                    labelStyle={{ color: '#f8fafc', fontWeight: 600, fontSize: '12px' }}
-                    itemStyle={{ fontSize: '12px', fontFamily: 'JetBrains Mono' }}
+                <BarChart data={defaultSignalVolume} margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.4} />
+                  <XAxis 
+                    dataKey="category" 
+                    stroke="var(--color-muted-foreground)" 
+                    fontSize={8} 
+                    tickLine={false} 
+                    axisLine={false} 
+                    fontFamily="JetBrains Mono"
+                    tickFormatter={(val) => val.split(' - ')[0]}
                   />
-                  <Bar dataKey="crypto" name="Crypto" fill="#2563eb" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="equities" name="Equities" fill="#10b981" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="fx" name="FX / Macro" fill="#06b6d4" radius={[3, 3, 0, 0]} />
+                  <YAxis 
+                    stroke="var(--color-muted-foreground)" 
+                    fontSize={9} 
+                    tickLine={false} 
+                    axisLine={false} 
+                    fontFamily="JetBrains Mono"
+                  />
+                  <RechartsTooltip
+                    contentStyle={{ backgroundColor: 'var(--color-popover)', borderColor: 'var(--color-border)', borderRadius: '4px', fontSize: '10px' }}
+                    cursor={{ fill: 'var(--color-accent)', opacity: 0.4 }}
+                  />
+                  <Bar dataKey="crypto" name="Crypto" fill="var(--color-primary)" radius={[2, 2, 0, 0]} barSize={12} />
+                  <Bar dataKey="equities" name="Equities" fill="var(--color-success)" radius={[2, 2, 0, 0]} barSize={12} />
+                  <Bar dataKey="fx" name="FX / Macro" fill="var(--color-info)" radius={[2, 2, 0, 0]} barSize={12} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -624,42 +636,40 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* 3. TABLE & 4. FILTERS (Quant Signals & Order Book Table with Sticky Header, Search, Sorting, Filtering, Row Selection & Pagination) */}
-      <Card className="bg-card border-border shadow-xs">
-        <CardHeader className="pb-3 pt-4 px-5 border-b border-border">
+      {/* 3. TABLE & 4. FILTERS (Quant Signals & Order Book) */}
+      <Card className="bg-card border-border shadow-xs overflow-hidden">
+        <CardHeader className="pb-3 pt-4 px-5 border-b border-border bg-accent/5">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <CardTitle className="text-base font-semibold">
-                  Live Research & Signal Execution Book
+                <CardTitle className="text-[14px] font-bold uppercase tracking-tight">
+                  Research Book & Signal Matrix
                 </CardTitle>
-                <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-secondary border border-border text-foreground">
-                  {filteredSignals.length} records
-                </span>
+                <div className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-secondary border border-border text-foreground/70">
+                  {filteredSignals.length} LIVE_SIGNALS
+                </div>
               </div>
-              <CardDescription className="text-xs">
-                Real-time signals generated by Transformer & LLM research agents with attribution.
+              <CardDescription className="text-[11px] mt-1">
+                Real-time attribution & model confidence scores for alpha research pool.
               </CardDescription>
             </div>
 
-            {/* 4. FILTERS (Search, Asset Class dropdown, Signal direction tabs) */}
+            {/* 4. FILTERS */}
             <div className="flex flex-wrap items-center gap-2">
-              <div className="relative w-48 sm:w-60">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-muted-foreground" />
+              <div className="relative w-48 sm:w-64">
+                <Search className="w-3 h-3 absolute left-2.5 top-2.5 text-muted-foreground/50" />
                 <Input
-                  type="text"
-                  placeholder="Search symbol, strategy..."
+                  placeholder="Search symbols or strategies..."
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="pl-8 h-8 text-xs font-mono bg-secondary/50 border-border"
+                  className="pl-8 h-8 text-[11px] font-mono bg-secondary/30 border-border focus:ring-1 focus:ring-primary/30"
                 />
               </div>
 
-              {/* Asset Class filter */}
-              <div className="flex items-center bg-secondary/60 rounded-md p-0.5 border border-border">
+              <div className="flex items-center bg-secondary/40 rounded p-0.5 border border-border h-8">
                 {(['ALL', 'CRYPTO', 'EQUITIES', 'FX'] as const).map((ac) => (
                   <button
                     key={ac}
@@ -667,19 +677,19 @@ export default function Dashboard() {
                       setSelectedAssetClass(ac);
                       setCurrentPage(1);
                     }}
-                    className={`px-2 py-1 text-[11px] font-mono rounded transition-colors ${
+                    className={cn(
+                      "px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider rounded-sm transition-all",
                       selectedAssetClass === ac
-                        ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
                         : 'text-muted-foreground hover:text-foreground'
-                    }`}
+                    )}
                   >
                     {ac}
                   </button>
                 ))}
               </div>
 
-              {/* Signal Type filter */}
-              <div className="flex items-center bg-secondary/60 rounded-md p-0.5 border border-border">
+              <div className="flex items-center bg-secondary/40 rounded p-0.5 border border-border h-8">
                 {(['ALL', 'LONG', 'SHORT'] as const).map((dir) => (
                   <button
                     key={dir}
@@ -687,197 +697,124 @@ export default function Dashboard() {
                       setSignalTypeFilter(dir);
                       setCurrentPage(1);
                     }}
-                    className={`px-2 py-1 text-[11px] font-mono rounded transition-colors ${
+                    className={cn(
+                      "px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider rounded-sm transition-all",
                       signalTypeFilter === dir
-                        ? 'bg-secondary text-foreground font-semibold border border-border'
+                        ? 'bg-secondary text-foreground border border-border/50 shadow-xs'
                         : 'text-muted-foreground hover:text-foreground'
-                    }`}
+                    )}
                   >
                     {dir}
                   </button>
                 ))}
               </div>
-
-              {/* Action for selected rows */}
-              {selectedRowIds.length > 0 && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    alert(`Exported ${selectedRowIds.length} signals to Research JSON bundle.`);
-                    setSelectedRowIds([]);
-                  }}
-                  className="h-8 text-xs font-mono gap-1 border-primary/30 text-primary hover:bg-primary/10"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Export ({selectedRowIds.length})</span>
-                </Button>
-              )}
             </div>
           </div>
         </CardHeader>
 
         <CardContent className="p-0">
-          {/* Table Container with Sticky Header */}
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-border bg-secondary/40 text-muted-foreground font-mono sticky top-0 z-10">
-                  <th className="py-2.5 px-4 w-10">
-                    <button onClick={toggleSelectAll} className="flex items-center justify-center">
+                <tr className="border-b border-border bg-secondary/20 text-muted-foreground font-mono text-[10px] font-bold uppercase tracking-widest sticky top-0 z-10 backdrop-blur-sm">
+                  <th className="py-2 px-4 w-10">
+                    <button onClick={toggleSelectAll} className="flex items-center justify-center opacity-60 hover:opacity-100">
                       {selectedRowIds.length > 0 && selectedRowIds.length === paginatedSignals.length ? (
-                        <CheckSquare className="w-4 h-4 text-primary" />
+                        <CheckSquare className="w-3.5 h-3.5 text-primary" />
                       ) : (
-                        <Square className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                        <Square className="w-3.5 h-3.5" />
                       )}
                     </button>
                   </th>
-                  <th
-                    className="py-2.5 px-4 font-semibold cursor-pointer select-none hover:text-foreground"
-                    onClick={() => handleSort('symbol')}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>Symbol</span>
-                      <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                  <th className="py-2 px-4 cursor-pointer group" onClick={() => handleSort('symbol')}>
+                    <div className="flex items-center gap-1.5 group-hover:text-foreground">
+                      SYMBOL <ArrowUpDown className="w-3 h-3 opacity-40" />
                     </div>
                   </th>
-                  <th className="py-2.5 px-4 font-semibold">Asset Class</th>
-                  <th
-                    className="py-2.5 px-4 font-semibold cursor-pointer select-none hover:text-foreground"
-                    onClick={() => handleSort('signal')}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>Signal</span>
-                      <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                  <th className="py-2 px-4">POOL</th>
+                  <th className="py-2 px-4 cursor-pointer group" onClick={() => handleSort('signal')}>
+                    <div className="flex items-center gap-1.5 group-hover:text-foreground">
+                      SIDE <ArrowUpDown className="w-3 h-3 opacity-40" />
                     </div>
                   </th>
-                  <th className="py-2.5 px-4 font-semibold text-right">Price @ Signal</th>
-                  <th className="py-2.5 px-4 font-semibold text-right">Target / Stop</th>
-                  <th
-                    className="py-2.5 px-4 font-semibold text-right cursor-pointer select-none hover:text-foreground"
-                    onClick={() => handleSort('confidence')}
-                  >
-                    <div className="flex items-center justify-end gap-1">
-                      <span>Confidence</span>
-                      <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                  <th className="py-2 px-4 text-right">ENTRY_PX</th>
+                  <th className="py-2 px-4 text-right">TP_SL</th>
+                  <th className="py-2 px-4 text-right cursor-pointer group" onClick={() => handleSort('confidence')}>
+                    <div className="flex items-center justify-end gap-1.5 group-hover:text-foreground">
+                      CONF % <ArrowUpDown className="w-3 h-3 opacity-40" />
                     </div>
                   </th>
-                  <th className="py-2.5 px-4 font-semibold">Quant Strategy</th>
-                  <th className="py-2.5 px-4 font-semibold text-right">Alpha PnL</th>
-                  <th className="py-2.5 px-4 font-semibold text-center">Action</th>
+                  <th className="py-2 px-4">STRATEGY</th>
+                  <th className="py-2 px-4 text-right">EST_PNL</th>
+                  <th className="py-2 px-4 text-center">OP</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/60">
+              <tbody className="divide-y divide-border/40 font-mono">
                 {paginatedSignals.map((item) => {
                   const isSelected = selectedRowIds.includes(item.id);
                   const isLong = item.signal === 'LONG';
                   const isShort = item.signal === 'SHORT';
 
                   return (
-                    <tr
-                      key={item.id}
-                      className={`hover:bg-secondary/30 transition-colors ${
-                        isSelected ? 'bg-primary/5' : ''
-                      }`}
-                    >
-                      <td className="py-3 px-4">
-                        <button
-                          onClick={() => toggleSelectRow(item.id)}
-                          className="flex items-center justify-center"
-                        >
-                          {isSelected ? (
-                            <CheckSquare className="w-4 h-4 text-primary" />
-                          ) : (
-                            <Square className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                          )}
+                    <tr key={item.id} className={cn("hover:bg-accent/30 transition-colors text-[11px]", isSelected && "bg-primary/[0.03]")}>
+                      <td className="py-2 px-4">
+                        <button onClick={() => toggleSelectRow(item.id)} className="flex items-center justify-center opacity-40 hover:opacity-100">
+                          {isSelected ? <CheckSquare className="w-3.5 h-3.5 text-primary" /> : <Square className="w-3.5 h-3.5" />}
                         </button>
                       </td>
-                      <td className="py-3 px-4 font-mono font-bold text-foreground">
-                        {item.symbol}
+                      <td className="py-2 px-4 font-bold text-foreground">{item.symbol}</td>
+                      <td className="py-2 px-4">
+                        <span className="text-[9px] font-bold text-muted-foreground/60">{item.assetClass}</span>
                       </td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded-xs text-[10px] font-mono font-medium uppercase bg-secondary border border-border text-muted-foreground">
-                          {item.assetClass}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border ${
-                            isLong
-                              ? 'bg-success/10 text-success border-success/30'
-                              : isShort
-                              ? 'bg-danger/10 text-danger border-danger/30'
-                              : 'bg-muted text-muted-foreground border-border'
-                          }`}
-                        >
+                      <td className="py-2 px-4">
+                        <span className={cn(
+                          "px-1.5 py-0.5 rounded-sm text-[9px] font-black uppercase border",
+                          isLong ? 'bg-success/5 text-success border-success/20' : 
+                          isShort ? 'bg-danger/5 text-danger border-danger/20' : 
+                          'bg-muted text-muted-foreground border-border'
+                        )}>
                           {item.signal}
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-mono text-right text-foreground">
-                        {item.priceAtSignal}
+                      <td className="py-2 px-4 text-right font-bold text-foreground/80">{item.priceAtSignal}</td>
+                      <td className="py-2 px-4 text-right">
+                        <span className="text-success/80">{item.targetPrice}</span>
+                        <span className="mx-1 opacity-20">/</span>
+                        <span className="text-danger/80">{item.stopLoss}</span>
                       </td>
-                      <td className="py-3 px-4 font-mono text-right text-muted-foreground">
-                        <span className="text-success">{item.targetPrice}</span> /{' '}
-                        <span className="text-danger">{item.stopLoss}</span>
-                      </td>
-                      <td className="py-3 px-4 font-mono text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <div className="w-12 bg-secondary rounded-full h-1.5 overflow-hidden">
-                            <div
-                              className="bg-primary h-full rounded-full"
-                              style={{ width: `${item.confidence}%` }}
-                            />
+                      <td className="py-2 px-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <div className="w-10 bg-secondary/50 rounded-full h-1 overflow-hidden">
+                            <div className="bg-primary h-full" style={{ width: `${item.confidence}%` }} />
                           </div>
-                          <span className="font-semibold text-foreground">
-                            {item.confidence}%
-                          </span>
+                          <span className="font-bold text-foreground/70">{item.confidence}%</span>
                         </div>
                       </td>
-                      <td className="py-3 px-4 font-mono text-muted-foreground">
-                        {item.strategy}
-                      </td>
-                      <td
-                        className={`py-3 px-4 font-mono font-bold text-right ${
-                          item.pnlContribution.startsWith('+')
-                            ? 'text-success'
-                            : item.pnlContribution.startsWith('-')
-                            ? 'text-danger'
-                            : 'text-muted-foreground'
-                        }`}
-                      >
+                      <td className="py-2 px-4 text-muted-foreground/60 text-[10px]">{item.strategy}</td>
+                      <td className={cn(
+                        "py-2 px-4 font-bold text-right",
+                        item.pnlContribution.startsWith('+') ? 'text-success' : 
+                        item.pnlContribution.startsWith('-') ? 'text-danger' : 
+                        'text-muted-foreground'
+                      )}>
                         {item.pnlContribution}
                       </td>
-                      <td className="py-3 px-4 text-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-primary"
-                          onClick={() => alert(`Opening deep quant chart inspection for ${item.symbol}...`)}
-                          title="Inspect Alpha Model"
-                        >
+                      <td className="py-2 px-4 text-center">
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/40 hover:text-primary">
                           <Eye className="w-3.5 h-3.5" />
                         </Button>
                       </td>
                     </tr>
                   );
                 })}
-
-                {paginatedSignals.length === 0 && (
-                  <tr>
-                    <td colSpan={10} className="py-12 text-center text-muted-foreground text-sm">
-                      No active quant signals match your search or filter criteria.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
 
           {/* Pagination Toolbar */}
-          <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-secondary/20">
-            <div className="text-xs text-muted-foreground font-mono">
-              Showing <span className="font-bold text-foreground">{paginatedSignals.length}</span> of{' '}
-              <span className="font-bold text-foreground">{filteredSignals.length}</span> signals
+          <div className="flex items-center justify-between px-4 py-2 border-t border-border bg-accent/5">
+            <div className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest font-mono">
+              CUR_PAGE: {currentPage} // TOTAL_RECORDS: {filteredSignals.length}
             </div>
             <div className="flex items-center gap-1">
               <Button
@@ -885,23 +822,18 @@ export default function Dashboard() {
                 size="sm"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="h-7 px-2.5 text-xs font-mono gap-1"
+                className="h-6 px-2 text-[10px] font-bold uppercase tracking-tighter"
               >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                <span>Prev</span>
+                <ChevronLeft className="w-3 h-3 mr-1" /> PREV
               </Button>
-              <span className="px-3 text-xs font-mono font-semibold text-foreground">
-                {currentPage} / {totalPages}
-              </span>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="h-7 px-2.5 text-xs font-mono gap-1"
+                className="h-6 px-2 text-[10px] font-bold uppercase tracking-tighter"
               >
-                <span>Next</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                NEXT <ChevronRight className="w-3 h-3 ml-1" />
               </Button>
             </div>
           </div>

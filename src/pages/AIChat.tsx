@@ -18,8 +18,6 @@ export default function AIChat() {
 
   const [messages, setMessages] = useState([
     { role: 'system', content: 'System initialized. Ready for quantitative analysis.' },
-    { role: 'user', content: 'Analyze the current correlation between BTC and tech stocks.' },
-    { role: 'assistant', content: 'Based on the latest data from the past 30 days, the rolling 30-day Pearson correlation between BTC and the Nasdaq 100 (NDX) currently sits at 0.62. This represents a significant increase from last quarter (0.35).\n\nKey drivers appear to be:\n1. Macroeconomic liquidity expectations\n2. Shared risk-on sentiment\n\nWould you like me to run a predictive model on this?' },
   ]);
 
   useEffect(() => {
@@ -68,21 +66,12 @@ export default function AIChat() {
       </div>
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
-          <div className="px-2 py-1 text-xs font-medium text-muted-foreground uppercase mt-2">Today</div>
-          <Button variant="ghost" className="w-full justify-start text-sm font-normal truncate bg-secondary/50">
-            BTC Correlation Analysis
-          </Button>
-          <Button variant="ghost" className="w-full justify-start text-sm font-normal truncate text-muted-foreground hover:text-foreground">
-            Mean Reversion Backtest
-          </Button>
-          
-          <div className="px-2 py-1 text-xs font-medium text-muted-foreground uppercase mt-4">Yesterday</div>
-          <Button variant="ghost" className="w-full justify-start text-sm font-normal truncate text-muted-foreground hover:text-foreground">
-            Fed Rate Hike Impact
-          </Button>
-          <Button variant="ghost" className="w-full justify-start text-sm font-normal truncate text-muted-foreground hover:text-foreground">
-            n8n Webhook Debug
-          </Button>
+          {/* LUU Y: chua co co che luu lich su chat that (chua ket noi database/localStorage).
+              Truoc day co 4 muc hardcode gia ("BTC Correlation Analysis"...) da bi xoa vi
+              khong phai cuoc hoi thoai that nao. */}
+          <div className="px-3 py-6 text-center text-xs text-muted-foreground/60">
+            Chua co lich su chat duoc luu.
+          </div>
         </div>
       </ScrollArea>
     </>
@@ -108,19 +97,19 @@ export default function AIChat() {
               </SheetContent>
             </Sheet>
 
-            <Select defaultValue="gpt-4o">
-              <SelectTrigger className="w-[180px] bg-background border-border">
+            <Select defaultValue="groq-oss-20b">
+              <SelectTrigger className="w-[200px] bg-background border-border">
                 <SelectValue placeholder="Select Model" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="gpt-4o">GPT-4o (Default)</SelectItem>
-                <SelectItem value="claude-3-5-sonnet">Claude 3.5 Sonnet</SelectItem>
-                <SelectItem value="gemini-1-5-pro">Gemini 1.5 Pro</SelectItem>
-                <SelectItem value="deepseek-coder">DeepSeek Coder</SelectItem>
-                <SelectItem value="llama-3">Llama 3 (Local)</SelectItem>
+                <SelectItem value="groq-oss-20b">GROQ-OSS-20B (WF-070)</SelectItem>
+                <SelectItem value="qwen2-5-3b" disabled>QWEN2.5:3B (Ollama - chua noi)</SelectItem>
               </SelectContent>
             </Select>
-            <span className="text-xs text-muted-foreground hidden sm:inline-block">24k Tokens</span>
+            {/* LUU Y: hien tai dropdown nay chi mang tinh hien thi, chua thuc su chuyen doi
+                model thuc te trong WF-070 (webhook n8n luon goi co dinh GROQ-OSS-20B).
+                Da bo cac lua chon gia (Claude/Gemini/DeepSeek/Llama) khong ton tai that. */}
+
           </div>
           
           <Sheet>

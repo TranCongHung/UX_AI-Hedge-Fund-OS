@@ -83,7 +83,10 @@ interface SignalVolumePoint {
   fx: number;
 }
 
-const defaultEquityData: EquityPoint[] = [
+// LUU Y: chua co workflow n8n nao cung cap du lieu equity curve / signal volume that.
+// Day la du lieu DEMO de hien thi layout - PHAI hien thi kem badge "DEMO DATA" ro rang,
+// khong duoc de nguoi dung nham la du lieu that (xem Technical Debt #9, CTO review).
+const DEMO_equityData: EquityPoint[] = [
   { time: '09:00', alphaStrategy: 1000000, benchmarkBTC: 1000000, benchmarkSPX: 1000000 },
   { time: '10:00', alphaStrategy: 1004200, benchmarkBTC: 1001500, benchmarkSPX: 1000400 },
   { time: '11:00', alphaStrategy: 1008900, benchmarkBTC: 998200,  benchmarkSPX: 1001100 },
@@ -94,7 +97,7 @@ const defaultEquityData: EquityPoint[] = [
   { time: '16:00', alphaStrategy: 1031250, benchmarkBTC: 1011400, benchmarkSPX: 1004200 },
 ];
 
-const defaultSignalVolume: SignalVolumePoint[] = [
+const DEMO_signalVolume: SignalVolumePoint[] = [
   { category: '00:00 - 04:00', crypto: 8, equities: 2, fx: 4 },
   { category: '04:00 - 08:00', crypto: 12, equities: 5, fx: 9 },
   { category: '08:00 - 12:00', crypto: 15, equities: 24, fx: 14 },
@@ -103,113 +106,9 @@ const defaultSignalVolume: SignalVolumePoint[] = [
   { category: '20:00 - 24:00', crypto: 11, equities: 4, fx: 6 },
 ];
 
-const defaultSignals: QuantSignal[] = [
-  {
-    id: 'sig-001',
-    symbol: 'BTC/USD',
-    assetClass: 'CRYPTO',
-    signal: 'LONG',
-    priceAtSignal: '$67,432.10',
-    targetPrice: '$71,200.00',
-    stopLoss: '$65,100.00',
-    confidence: 94.2,
-    strategy: 'Transformer-Momentum-v4',
-    createdAt: '10:14:22',
-    pnlContribution: '+$4,820.40'
-  },
-  {
-    id: 'sig-002',
-    symbol: 'NVDA',
-    assetClass: 'EQUITIES',
-    signal: 'LONG',
-    priceAtSignal: '$128.45',
-    targetPrice: '$138.00',
-    stopLoss: '$123.50',
-    confidence: 89.7,
-    strategy: 'Earnings-Sentiment-Llama3',
-    createdAt: '09:48:05',
-    pnlContribution: '+$3,140.00'
-  },
-  {
-    id: 'sig-003',
-    symbol: 'ETH/USD',
-    assetClass: 'CRYPTO',
-    signal: 'SHORT',
-    priceAtSignal: '$3,481.05',
-    targetPrice: '$3,290.00',
-    stopLoss: '$3,580.00',
-    confidence: 81.4,
-    strategy: 'Orderflow-Imbalance-L1',
-    createdAt: '09:30:11',
-    pnlContribution: '+$1,980.25'
-  },
-  {
-    id: 'sig-004',
-    symbol: 'EUR/USD',
-    assetClass: 'FX',
-    signal: 'SHORT',
-    priceAtSignal: '1.08420',
-    targetPrice: '1.07600',
-    stopLoss: '1.08900',
-    confidence: 78.5,
-    strategy: 'Macro-Rates-Differential',
-    createdAt: '08:55:40',
-    pnlContribution: '+$910.15'
-  },
-  {
-    id: 'sig-005',
-    symbol: 'SOL/USD',
-    assetClass: 'CRYPTO',
-    signal: 'LONG',
-    priceAtSignal: '$178.20',
-    targetPrice: '$198.50',
-    stopLoss: '$169.00',
-    confidence: 88.0,
-    strategy: 'Transformer-Momentum-v4',
-    createdAt: '08:42:19',
-    pnlContribution: '+$2,450.80'
-  },
-  {
-    id: 'sig-006',
-    symbol: 'AAPL',
-    assetClass: 'EQUITIES',
-    signal: 'NEUTRAL',
-    priceAtSignal: '$226.30',
-    targetPrice: '$226.30',
-    stopLoss: '$221.00',
-    confidence: 64.0,
-    strategy: 'Mean-Reversion-StatArb',
-    createdAt: '08:15:00',
-    pnlContribution: '$0.00'
-  },
-  {
-    id: 'sig-007',
-    symbol: 'XAU/USD',
-    assetClass: 'MACRO',
-    signal: 'LONG',
-    priceAtSignal: '$2,412.50',
-    targetPrice: '$2,460.00',
-    stopLoss: '$2,385.00',
-    confidence: 86.3,
-    strategy: 'Macro-Rates-Differential',
-    createdAt: '07:50:12',
-    pnlContribution: '+$1,680.00'
-  },
-  {
-    id: 'sig-008',
-    symbol: 'MSFT',
-    assetClass: 'EQUITIES',
-    signal: 'LONG',
-    priceAtSignal: '$452.10',
-    targetPrice: '$472.00',
-    stopLoss: '$441.50',
-    confidence: 91.1,
-    strategy: 'Earnings-Sentiment-Llama3',
-    createdAt: '07:22:38',
-    pnlContribution: '+$2,890.30'
-  }
-];
-
+// Truoc day co mang defaultSignals chua du lieu gia (NVDA, AAPL, "Transformer-Momentum-v4"...)
+// khong khop voi backend that (backend chi giao dich crypto qua Binance, chien luoc EMA-cross+ATR).
+// Da xoa bo hoan toan - state `signals` gio khoi tao rong, chi hien thi khi co du lieu that tu WF-080.
 export default function Dashboard() {
   const [status, setStatus] = useState<DashboardStatus>({
     postgresOnline: true,
@@ -220,7 +119,7 @@ export default function Dashboard() {
     watchlistCount: 16,
     latencyMs: 12
   });
-  const [signals, setSignals] = useState<QuantSignal[]>(defaultSignals);
+  const [signals, setSignals] = useState<QuantSignal[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -247,7 +146,7 @@ export default function Dashboard() {
       ]);
 
       if (!statusRes || !statusRes.ok || !signalsRes || !signalsRes.ok) {
-        setError('Research Cluster WF-080 (n8n) is currently unreachable. Displaying local Alpha-V4 snapshots.');
+        setError('Khong ket noi duoc voi n8n webhook WF-080. Chua co du lieu tin hieu that de hien thi.');
       }
 
       if (statusRes && statusRes.ok) {
@@ -452,30 +351,33 @@ export default function Dashboard() {
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold font-mono tracking-tight text-foreground">{status.signalsTodayCount}</span>
-              <span className="text-[10px] font-bold text-primary font-mono">74% WIN</span>
+              <span className="px-1 py-0.5 rounded-sm text-[8px] font-black uppercase bg-warning/10 text-warning border border-warning/30">
+                DEMO
+              </span>
             </div>
             <div className="mt-4 flex items-center justify-between text-[10px] font-mono text-muted-foreground/60 border-t border-border/40 pt-2">
-              <span>L: 18 / S: 10</span>
-              <span>AVG_RR: 1:2.6</span>
+              <span>Chua co win-rate tinh toan that</span>
             </div>
           </CardContent>
         </Card>
 
-        {/* KPI 3: AI Compute */}
+        {/* KPI 3: Infra Status - LUU Y: he thong chay tren Ollama CPU (may 6GB RAM) qua Docker,
+            khong phai GPU cluster. Da bo cac chi so "AI Compute (GPU)/VRAM/LLAMA-3-70B" gia truoc day. */}
         <Card className="bg-card border-border shadow-xs overflow-hidden">
-          <div className="h-1 w-full bg-info" />
+          <div className={`h-1 w-full ${status.ollamaOnline ? 'bg-success' : 'bg-warning'}`} />
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">AI Compute (GPU)</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">AI Agents</span>
               <Cpu className="w-3.5 h-3.5 text-info" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold font-mono tracking-tight text-foreground">14.2ms</span>
-              <span className="text-[10px] font-bold text-success font-mono">OPTIMAL</span>
+              <span className="text-2xl font-bold font-mono tracking-tight text-foreground">
+                {status.ollamaOnline ? 'ONLINE' : 'OFFLINE'}
+              </span>
             </div>
             <div className="mt-4 flex items-center justify-between text-[10px] font-mono text-muted-foreground/60 border-t border-border/40 pt-2">
-              <span>VRAM: 18.4GB</span>
-              <span>LLAMA-3-70B</span>
+              <span>GROQ-OSS-20B</span>
+              <span>QWEN2.5:3B</span>
             </div>
           </CardContent>
         </Card>
@@ -512,9 +414,12 @@ export default function Dashboard() {
                   <CardTitle className="text-[11px] font-bold uppercase tracking-[0.1em] text-foreground">
                     Performance Attribution Analysis
                   </CardTitle>
+                  <span className="px-1.5 py-0.5 rounded-sm text-[9px] font-black uppercase bg-warning/10 text-warning border border-warning/30">
+                    DEMO DATA
+                  </span>
                 </div>
                 <CardDescription className="text-[10px] font-mono">
-                  Normalized Intraday Equity • Granularity: 60s • 100% Signal execution coverage
+                  Normalized Intraday Equity • Granularity: 60s • Chua co workflow n8n cung cap du lieu that
                 </CardDescription>
               </div>
               <div className="flex items-center gap-4 text-[10px] font-mono font-bold">
@@ -532,7 +437,7 @@ export default function Dashboard() {
           <CardContent className="px-1 pb-2 pt-6">
             <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={defaultEquityData} margin={{ top: 0, right: 10, left: 10, bottom: 0 }}>
+                <AreaChart data={DEMO_equityData} margin={{ top: 0, right: 10, left: 10, bottom: 0 }}>
                   <defs>
                     <linearGradient id="alphaGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.2} />
@@ -596,6 +501,9 @@ export default function Dashboard() {
               <CardTitle className="text-[11px] font-bold uppercase tracking-[0.1em] text-foreground">
                 Signal Volume Matrix
               </CardTitle>
+              <span className="px-1.5 py-0.5 rounded-sm text-[9px] font-black uppercase bg-warning/10 text-warning border border-warning/30">
+                DEMO DATA
+              </span>
             </div>
             <CardDescription className="text-[10px] font-mono">
               Cluster density across asset pools
@@ -604,7 +512,7 @@ export default function Dashboard() {
           <CardContent className="px-2 pb-2 pt-8">
             <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={defaultSignalVolume} margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
+                <BarChart data={DEMO_signalVolume} margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.4} />
                   <XAxis 
                     dataKey="category" 
@@ -750,6 +658,15 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40 font-mono">
+                {paginatedSignals.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="py-10 text-center text-muted-foreground/60 text-[11px]">
+                      {loading
+                        ? 'Dang tai du lieu tu WF-080...'
+                        : 'Chua co tin hieu that nao. Kiem tra n8n webhook WF-080 dang chay chua.'}
+                    </td>
+                  </tr>
+                )}
                 {paginatedSignals.map((item) => {
                   const isSelected = selectedRowIds.includes(item.id);
                   const isLong = item.signal === 'LONG';

@@ -45,7 +45,8 @@ export default function TopNav() {
           ))}
         </nav>
         
-        {/* Live Tickers */}
+        {/* Live Tickers - LUU Y: gia tri hien dang hardcode tinh, chua noi voi feed gia that.
+            Danh dau ro "DEMO" thay vi de nguoi dung tuong day la gia real-time. */}
         <div className="hidden xl:flex items-center gap-5 border-l border-border pl-6 ml-2">
           <div className="flex items-center gap-3">
             <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wider font-mono">BTC</span>
@@ -53,13 +54,9 @@ export default function TopNav() {
               <span className="text-sm font-bold">$67,432</span>
               <span className="text-[10px] text-success font-bold">+2.4%</span>
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wider font-mono">NVDA</span>
-            <div className="flex items-baseline gap-1.5 font-mono">
-              <span className="text-sm font-bold">$128.45</span>
-              <span className="text-[10px] text-success font-bold">+3.1%</span>
-            </div>
+            <span className="px-1 py-0.5 rounded-sm text-[8px] font-black uppercase bg-warning/10 text-warning border border-warning/30">
+              DEMO
+            </span>
           </div>
         </div>
       </div>
@@ -70,7 +67,7 @@ export default function TopNav() {
           <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(37,99,235,0.4)] animate-pulse" />
           <div className="flex items-baseline gap-1.5">
             <span className="text-[10px] font-bold text-muted-foreground uppercase">Model</span>
-            <span className="text-[11px] font-bold text-foreground font-mono">GPT-4o-RESEARCH</span>
+            <span className="text-[11px] font-bold text-foreground font-mono">GROQ-OSS-20B</span>
           </div>
         </div>
 

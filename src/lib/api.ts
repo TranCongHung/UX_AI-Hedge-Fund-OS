@@ -13,6 +13,7 @@ export const getWebhookPath = (path: string) => {
 
 export const fetchDashboardStatus = () => fetch(`${getN8nUrl()}${getWebhookPath('dashboard-status')}`);
 export const fetchDashboardSignals = () => fetch(`${getN8nUrl()}${getWebhookPath('dashboard-signals')}`);
+export const fetchDashboardDecisions = () => fetch(`${getN8nUrl()}${getWebhookPath('dashboard-decisions')}`);
 export const fetchAiChat = (message: string) => fetch(`${getN8nUrl()}${getWebhookPath('ai-chat')}`, {
   method: 'POST',
   headers: {

@@ -8,6 +8,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import AppLayout from '@/components/layout/AppLayout';
 
 import Dashboard from '@/pages/Dashboard';
+import Signals from '@/pages/Signals';
 import Research from '@/pages/Research';
 import Markets from '@/pages/Markets';
 import Portfolio from '@/pages/Portfolio';
@@ -31,6 +32,7 @@ export default function App() {
             
             {/* Platform */}
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="signals" element={<Signals />} />
             <Route path="research" element={<Research />} />
             <Route path="markets" element={<Markets />} />
             <Route path="portfolio" element={<Portfolio />} />

@@ -1,87 +1,238 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { ArrowUpRight, ArrowDownRight, Target, ShieldAlert, Zap } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Target, AlertTriangle } from 'lucide-react';
+import { fetchDashboardDecisions } from '@/lib/api';
 
-const mockSignals = [
-  { id: '1', symbol: 'BTC/USD', price: '$64,230', signal: 'LONG', confidence: 85, risk: 'Medium', reward: 'High', reason: 'EMA Crossover + Volume Spike', time: '10 mins ago', pnl: '+0.5%' },
-  { id: '2', symbol: 'ETH/USD', price: '$3,420', signal: 'SHORT', confidence: 72, risk: 'High', reward: 'High', reason: 'Resistance Rejection at 3450', time: '1 hour ago', pnl: '-0.2%' },
-  { id: '3', symbol: 'SOL/USD', price: '$142.10', signal: 'LONG', confidence: 91, risk: 'Low', reward: 'Medium', reason: 'Oversold RSI Divergence', time: '3 hours ago', pnl: '+2.1%' },
-  { id: '4', symbol: 'NVDA', price: '$128.50', signal: 'LONG', confidence: 68, risk: 'Medium', reward: 'Medium', reason: 'Earnings anticipation flow', time: '4 hours ago', pnl: '+0.8%' },
-  { id: '5', symbol: 'EUR/USD', price: '1.0842', signal: 'SHORT', confidence: 79, risk: 'Low', reward: 'Low', reason: 'Macro divergence EUR vs USD', time: '5 hours ago', pnl: '+0.1%' },
-  { id: '6', symbol: 'AAPL', price: '$210.40', signal: 'SHORT', confidence: 62, risk: 'Medium', reward: 'Low', reason: 'Momentum waning pre-event', time: '1 day ago', pnl: '-1.2%' },
-];
+interface Decision {
+  symbol: string;
+  original_signal: string;
+  original_confidence: number | null;
+  risk_level: string | null;
+  risk_score: number | null;
+  atr_regime: string | null;
+  adjusted_signal: string;
+  adjusted_confidence: number | null;
+  position_size_pct: number | null;
+  reason: string;
+  created_at: string;
+  price_at_signal: number | null;
+}
+
+function signalBadgeVariant(signal: string) {
+  if (signal === 'BUY') return 'default';
+  if (signal === 'SELL') return 'destructive';
+  return 'secondary';
+}
+
+function signalIcon(signal: string) {
+  if (signal === 'BUY') return <ArrowUpRight className="w-3.5 h-3.5" />;
+  if (signal === 'SELL') return <ArrowDownRight className="w-3.5 h-3.5" />;
+  return <Minus className="w-3.5 h-3.5" />;
+}
+
+// He thong hien tai chi thu thap du lieu Crypto qua Binance (symbol dang XXXUSDT/XXXBUSD).
+// Neu sau nay them nguon Forex, symbol se co dinh dang khac (vi du EURUSD, khong co hau to USDT).
+// Day la heuristic don gian de phan biet, khong phai du lieu that tu 2 nguon rieng.
+function isCrypto(symbol: string) {
+  return /USDT$|BUSD$|USDC$/i.test(symbol);
+}
+
+// Goi y don gian dua tren risk_level - KHONG PHAI khuyen nghi dau tu chuyen nghiep.
+function suggestLeverage(riskLevel: string | null) {
+  if (riskLevel === 'HIGH') return 2;
+  if (riskLevel === 'MEDIUM') return 5;
+  return 10; // LOW hoac khong ro
+}
+
+function computeFuturesSuggestion(d: Decision) {
+  const price = d.price_at_signal !== null && d.price_at_signal !== undefined
+    ? parseFloat(String(d.price_at_signal))
+    : null;
+  const validPrice = price !== null && Number.isFinite(price) ? price : null;
+  const leverage = suggestLeverage(d.risk_level);
+  const isLong = d.adjusted_signal === 'BUY';
+  const isShort = d.adjusted_signal === 'SELL';
+
+  if (!validPrice || (!isLong && !isShort)) {
+    return { side: 'HOLD' as const, leverage, price: validPrice, tp: null, sl: null, liq: null };
+  }
+
+  // Bien do TP/SL co dinh theo risk level - vi du minh hoa, KHONG phai toi uu hoa that.
+  const tpPct = d.risk_level === 'HIGH' ? 0.015 : d.risk_level === 'MEDIUM' ? 0.02 : 0.03;
+  const slPct = d.risk_level === 'HIGH' ? 0.01 : d.risk_level === 'MEDIUM' ? 0.015 : 0.02;
+
+  const tp = isLong ? validPrice * (1 + tpPct) : validPrice * (1 - tpPct);
+  const sl = isLong ? validPrice * (1 - slPct) : validPrice * (1 + slPct);
+  // Uoc luong don gian, BO QUA maintenance margin rate thuc te cua san - chi mang tinh tham khao.
+  const liq = isLong ? validPrice * (1 - 1 / leverage) : validPrice * (1 + 1 / leverage);
+
+  return { side: isLong ? 'LONG' : 'SHORT', leverage, price: validPrice, tp, sl, liq };
+}
+
+function OrderSuggestionContent({ d }: { d: Decision }) {
+  if (!isCrypto(d.symbol)) {
+    return (
+      <div className="space-y-3 text-sm">
+        <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2">
+          <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+          <span>He thong hien chua ket noi du lieu gia Forex that. Duoi day chi la huong dan cach tu thiet lap lenh tren san Forex ban dung.</span>
+        </div>
+        <ol className="list-decimal list-inside space-y-1.5">
+          <li>Mo san Forex/CFD ban dang dung, tim dung cap tien <strong>{d.symbol}</strong>.</li>
+          <li>Chon huong lenh: <strong>{d.adjusted_signal === 'BUY' ? 'Buy (Long)' : d.adjusted_signal === 'SELL' ? 'Sell (Short)' : 'Chua vao lenh (HOLD)'}</strong>.</li>
+          <li>Dat Stop Loss va Take Profit theo ty le rui ro ban chap nhan duoc (vi du 1:2 hoac 1:3), dua tren muc do rui ro AI danh gia: <strong>{d.risk_level || 'N/A'}</strong>.</li>
+          <li>Kich thuoc lenh (lot size) nen giam neu risk_level la MEDIUM/HIGH - AI de xuat position size <strong>{d.position_size_pct ?? '-'}%</strong> so voi binh thuong.</li>
+        </ol>
+      </div>
+    );
+  }
+
+  const s = computeFuturesSuggestion(d);
+
+  if (s.side === 'HOLD') {
+    return (
+      <div className="text-sm text-muted-foreground">
+        Tin hieu hien tai la <strong>HOLD</strong> hoac thieu du lieu gia - chua co goi y dat lenh Futures.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3 text-sm">
+      <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2">
+        <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+        <span>Day chi la goi y tinh toan don gian theo cong thuc %, khong phai khuyen nghi dau tu chuyen nghiep. Ban tu kiem tra va chiu trach nhiem truoc khi dat lenh that.</span>
+      </div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 font-mono">
+        <span className="text-muted-foreground">Vi the</span>
+        <span className="font-bold">{s.side}</span>
+
+        <span className="text-muted-foreground">Gia tham chieu</span>
+        <span>{s.price?.toFixed(4)}</span>
+
+        <span className="text-muted-foreground">Don bay de xuat</span>
+        <span>{s.leverage}x ({d.risk_level || 'N/A'})</span>
+
+        <span className="text-muted-foreground">Che do ky quy</span>
+        <span>Isolated (khuyen nghi, gioi han lo toi da)</span>
+
+        <span className="text-muted-foreground">Take Profit</span>
+        <span className="text-success">{s.tp?.toFixed(4)}</span>
+
+        <span className="text-muted-foreground">Stop Loss</span>
+        <span className="text-destructive">{s.sl?.toFixed(4)}</span>
+
+        <span className="text-muted-foreground">Uoc tinh gia thanh ly</span>
+        <span className="text-destructive">{s.liq?.toFixed(4)} (uoc luong, chua tinh phi duy tri)</span>
+
+        <span className="text-muted-foreground">Position size de xuat</span>
+        <span>{d.position_size_pct ?? '-'}% von thong thuong</span>
+      </div>
+    </div>
+  );
+}
 
 export default function Signals() {
-  const [selectedSignal, setSelectedSignal] = useState<typeof mockSignals[0] | null>(null);
+  const [decisions, setDecisions] = useState<Decision[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Decision | null>(null);
+  const [orderTarget, setOrderTarget] = useState<Decision | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetchDashboardDecisions();
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setDecisions(data.decisions || []);
+    } catch (err) {
+      setError('Khong ket noi duoc voi n8n webhook WF-080 (dashboard-decisions). Kiem tra workflow da Active va co du lieu trong risk_adjusted_decisions chua.');
+      setDecisions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Trading Signals</h1>
-          <p className="text-muted-foreground mt-1">AI-generated entry and exit opportunities.</p>
+          <p className="text-muted-foreground mt-1">
+            Tin hieu cuoi cung sau AI Debate (WF-023) + dieu chinh rui ro (WF-050/WF-060).
+          </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">Filter</Button>
-          <Button>Run AI Scan Now</Button>
-        </div>
+        <Button variant="outline" onClick={load} disabled={loading}>
+          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
+
+      {error && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
       <Card className="bg-card border-border overflow-hidden">
         <Table>
           <TableHeader className="bg-secondary/50">
             <TableRow className="border-border hover:bg-transparent">
               <TableHead>Symbol</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Signal</TableHead>
+              <TableHead>Tin hieu goc</TableHead>
+              <TableHead>Risk Level</TableHead>
+              <TableHead>Tin hieu da dieu chinh</TableHead>
               <TableHead>Confidence</TableHead>
-              <TableHead>Risk/Reward</TableHead>
-              <TableHead className="hidden md:table-cell">Reason</TableHead>
-              <TableHead className="text-right">Time</TableHead>
+              <TableHead>Position Size</TableHead>
+              <TableHead>Thoi gian</TableHead>
+              <TableHead className="text-right">Hanh dong</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
-            {mockSignals.map((signal) => (
-              <TableRow 
-                key={signal.id} 
-                className="border-border cursor-pointer hover:bg-secondary/40 transition-colors"
-                onClick={() => setSelectedSignal(signal)}
-              >
-                <TableCell className="font-medium">{signal.symbol}</TableCell>
-                <TableCell className="font-mono">{signal.price}</TableCell>
+          <TableBody className="font-mono text-sm">
+            {decisions.length === 0 && !loading && (
+              <TableRow>
+                <TableCell colSpan={8} className="py-10 text-center text-muted-foreground/60">
+                  Chua co du lieu. Kiem tra WF-000 da chay xong chu ky gan nhat chua.
+                </TableCell>
+              </TableRow>
+            )}
+            {decisions.map((d) => (
+              <TableRow key={d.symbol} className="border-border/40 hover:bg-secondary/30">
+                <TableCell className="font-bold cursor-pointer" onClick={() => setSelected(d)}>{d.symbol}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={signal.signal === 'LONG' ? 'text-success border-success/30 bg-success/10' : 'text-danger border-danger/30 bg-danger/10'}>
-                    {signal.signal === 'LONG' ? <ArrowUpRight className="w-3 h-3 mr-1" /> : <ArrowDownRight className="w-3 h-3 mr-1" />}
-                    {signal.signal}
+                  <Badge variant={signalBadgeVariant(d.original_signal) as any} className="gap-1">
+                    {signalIcon(d.original_signal)} {d.original_signal}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 h-1.5 bg-background rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full ${signal.confidence > 80 ? 'bg-success' : signal.confidence > 70 ? 'bg-primary' : 'bg-warning'}`} 
-                        style={{ width: `${signal.confidence}%` }} 
-                      />
-                    </div>
-                    <span className="text-xs text-muted-foreground">{signal.confidence}%</span>
-                  </div>
+                  <Badge variant={d.risk_level === 'HIGH' ? 'destructive' : d.risk_level === 'MEDIUM' ? 'secondary' : 'default'}>
+                    {d.risk_level || 'N/A'}
+                  </Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="text-xs">
-                    <span className={signal.risk === 'Low' ? 'text-success' : signal.risk === 'High' ? 'text-danger' : 'text-warning'}>{signal.risk}</span>
-                    <span className="text-muted-foreground mx-1">/</span>
-                    <span className={signal.reward === 'High' ? 'text-success' : signal.reward === 'Low' ? 'text-muted-foreground' : 'text-primary'}>{signal.reward}</span>
-                  </div>
+                  <Badge variant={signalBadgeVariant(d.adjusted_signal) as any} className="gap-1">
+                    {signalIcon(d.adjusted_signal)} {d.adjusted_signal}
+                  </Badge>
                 </TableCell>
-                <TableCell className="hidden md:table-cell text-sm text-muted-foreground max-w-[200px] truncate">
-                  {signal.reason}
+                <TableCell>{d.adjusted_confidence ?? '-'}</TableCell>
+                <TableCell>{d.position_size_pct ?? '-'}%</TableCell>
+                <TableCell className="text-muted-foreground text-xs">
+                  {new Date(d.created_at).toLocaleString('vi-VN')}
                 </TableCell>
-                <TableCell className="text-right text-xs text-muted-foreground">
-                  {signal.time}
+                <TableCell className="text-right">
+                  <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setOrderTarget(d)}>
+                    <Target className="w-3.5 h-3.5" /> Dat lenh
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -89,56 +240,34 @@ export default function Signals() {
         </Table>
       </Card>
 
-      <Dialog open={!!selectedSignal} onOpenChange={(open) => !open && setSelectedSignal(null)}>
-        <DialogContent className="bg-card border-border sm:max-w-[600px]">
+      {/* Modal chi tiet ly do */}
+      <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-2xl">
-              {selectedSignal?.symbol} 
-              <Badge variant="outline" className={selectedSignal?.signal === 'LONG' ? 'text-success border-success/30 bg-success/10 text-sm' : 'text-danger border-danger/30 bg-danger/10 text-sm'}>
-                {selectedSignal?.signal}
-              </Badge>
-            </DialogTitle>
-            <DialogDescription>
-              Generated {selectedSignal?.time} by AI Pattern Engine v4.2
-            </DialogDescription>
+            <DialogTitle>{selected?.symbol}</DialogTitle>
+            <DialogDescription>Chi tiet ly do dieu chinh rui ro</DialogDescription>
           </DialogHeader>
-          
-          {selectedSignal && (
-            <div className="grid gap-6 py-4">
-              <div className="grid grid-cols-3 gap-4">
-                <Card className="bg-background border-border/50 p-3">
-                  <div className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><Target className="w-3 h-3"/> Entry Price</div>
-                  <div className="font-mono text-lg">{selectedSignal.price}</div>
-                </Card>
-                <Card className="bg-background border-border/50 p-3">
-                  <div className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><Zap className="w-3 h-3"/> Target</div>
-                  <div className="font-mono text-lg text-success">
-                    {selectedSignal.signal === 'LONG' ? '$68,500' : '$3,200'}
-                  </div>
-                </Card>
-                <Card className="bg-background border-border/50 p-3">
-                  <div className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><ShieldAlert className="w-3 h-3"/> Stop Loss</div>
-                  <div className="font-mono text-lg text-danger">
-                    {selectedSignal.signal === 'LONG' ? '$61,200' : '$3,550'}
-                  </div>
-                </Card>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-semibold mb-2">AI Thesis</h4>
-                <div className="p-4 bg-secondary/50 rounded-lg text-sm text-muted-foreground leading-relaxed">
-                  The quantitative model identified a {selectedSignal.reason.toLowerCase()} pattern. Volume profile analysis supports this move with a 2.4x standard deviation spike on the latest hourly candle. Correlated assets are also showing similar strength, confirming the validity of the breakout.
-                  <br/><br/>
-                  <strong>Risk Assessment:</strong> Macro data release in 2 hours could cause volatility. Position sizing should be kept to {selectedSignal.risk === 'High' ? '0.5%' : selectedSignal.risk === 'Medium' ? '1%' : '2%'} of portfolio equity.
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4 border-t border-border/50">
-                <Button className="flex-1 bg-primary hover:bg-primary/90">Execute Trade</Button>
-                <Button variant="outline" className="flex-1">Send to Workflow</Button>
-              </div>
+          {selected && (
+            <div className="space-y-2 text-sm">
+              <p><strong>Tin hieu goc:</strong> {selected.original_signal} (confidence: {selected.original_confidence ?? '-'})</p>
+              <p><strong>Risk score:</strong> {selected.risk_score ?? '-'} ({selected.risk_level ?? 'N/A'})</p>
+              <p><strong>ATR regime:</strong> {selected.atr_regime ?? '-'}</p>
+              <p><strong>Ly do:</strong> {selected.reason}</p>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal goi y dat lenh */}
+      <Dialog open={!!orderTarget} onOpenChange={(open) => !open && setOrderTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Goi y dat lenh - {orderTarget?.symbol}</DialogTitle>
+            <DialogDescription>
+              {orderTarget && isCrypto(orderTarget.symbol) ? 'Thong so tham khao cho lenh Futures' : 'Huong dan thiet lap lenh Forex thu cong'}
+            </DialogDescription>
+          </DialogHeader>
+          {orderTarget && <OrderSuggestionContent d={orderTarget} />}
         </DialogContent>
       </Dialog>
     </div>

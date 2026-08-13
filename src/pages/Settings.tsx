@@ -1,25 +1,71 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings as SettingsIcon, Bell, Key, Shield, AlertTriangle } from 'lucide-react';
+import { Settings as SettingsIcon, Bell, Key, Shield, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { fetchUserSettings, saveUserSettings } from '@/lib/api';
 
 export default function Settings() {
   const [n8nUrl, setN8nUrl] = useState('');
   const [testMode, setTestMode] = useState(false);
-  const [maxDrawdown, setMaxDrawdown] = useState('10');
-  const [maxPosition, setMaxPosition] = useState('5');
-  
+  const [totalCapital, setTotalCapital] = useState('1000');
+  const [riskPctPerTrade, setRiskPctPerTrade] = useState('2');
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [settingsSaved, setSettingsSaved] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+
   useEffect(() => {
     setN8nUrl(localStorage.getItem('n8n_url') || 'http://localhost:5678');
     setTestMode(localStorage.getItem('n8n_test_mode') === 'true');
+  }, []);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      setSettingsLoading(true);
+      setSettingsError(null);
+      try {
+        const res = await fetchUserSettings();
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data.total_capital !== undefined) setTotalCapital(String(data.total_capital));
+        if (data.risk_pct_per_trade !== undefined) setRiskPctPerTrade(String(data.risk_pct_per_trade));
+      } catch (err) {
+        setSettingsError('Khong tai duoc ke hoach von. Kiem tra webhook settings-get da Active chua.');
+      } finally {
+        setSettingsLoading(false);
+      }
+    };
+    loadSettings();
   }, []);
 
   const handleSaveUrl = () => {
     localStorage.setItem('n8n_url', n8nUrl);
     localStorage.setItem('n8n_test_mode', testMode.toString());
     alert('API Settings saved! Please refresh the page or navigate to Dashboard to see changes.');
+  };
+
+  const handleSaveCapitalPlan = async () => {
+    setSettingsSaved(false);
+    setSettingsError(null);
+    const capital = parseFloat(totalCapital);
+    const riskPct = parseFloat(riskPctPerTrade);
+    if (!Number.isFinite(capital) || capital <= 0) {
+      setSettingsError('Tong von phai la so duong.');
+      return;
+    }
+    if (!Number.isFinite(riskPct) || riskPct <= 0 || riskPct > 100) {
+      setSettingsError('Rui ro moi lenh phai trong khoang 0-100%.');
+      return;
+    }
+    try {
+      const res = await saveUserSettings(capital, riskPct);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setSettingsSaved(true);
+      setTimeout(() => setSettingsSaved(false), 3000);
+    } catch (err) {
+      setSettingsError('Luu that bai. Kiem tra webhook settings-save da Active chua.');
+    }
   };
 
   return (
@@ -87,16 +133,49 @@ export default function Settings() {
           </Card>
 
           <Card className="bg-card border-border">
-            <CardHeader><CardTitle>Trading Risk Parameters</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Ke Hoach Von</CardTitle></CardHeader>
             <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Nhap tong von va % rui ro chap nhan moi lenh. He thong dung so nay de tinh Max Drawdown
+                chinh xac trong WF-035 (thay vi gia dinh 100% von/lenh nhu truoc) va de goi y position size
+                thuc te khi dat lenh.
+              </p>
+
+              {settingsError && (
+                <div className="flex items-center gap-2 text-sm text-destructive rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" /> {settingsError}
+                </div>
+              )}
+              {settingsSaved && (
+                <div className="flex items-center gap-2 text-sm text-success rounded-md border border-success/40 bg-success/10 px-3 py-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" /> Da luu ke hoach von.
+                </div>
+              )}
+
               <div className="grid gap-2">
-                <label className="text-sm font-medium">Max Drawdown Limit (%)</label>
-                <Input value={maxDrawdown} onChange={e => setMaxDrawdown(e.target.value)} className="bg-background border-border max-w-[200px]" />
+                <label className="text-sm font-medium">Tong von (USDT)</label>
+                <Input
+                  type="number"
+                  value={totalCapital}
+                  onChange={e => setTotalCapital(e.target.value)}
+                  className="bg-background border-border max-w-[200px]"
+                  disabled={settingsLoading}
+                />
               </div>
               <div className="grid gap-2">
-                <label className="text-sm font-medium">Max Position Size (%)</label>
-                <Input value={maxPosition} onChange={e => setMaxPosition(e.target.value)} className="bg-background border-border max-w-[200px]" />
+                <label className="text-sm font-medium">Rui ro moi lenh (%)</label>
+                <Input
+                  type="number"
+                  value={riskPctPerTrade}
+                  onChange={e => setRiskPctPerTrade(e.target.value)}
+                  className="bg-background border-border max-w-[200px]"
+                  disabled={settingsLoading}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Vi du: von 1000 USDT, rui ro 2%/lenh = toi da 20 USDT co the mat moi lenh neu dung SL.
+                </p>
               </div>
+              <Button onClick={handleSaveCapitalPlan} disabled={settingsLoading}>Luu Ke Hoach Von</Button>
             </CardContent>
           </Card>
           

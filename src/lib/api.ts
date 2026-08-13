@@ -14,6 +14,15 @@ export const getWebhookPath = (path: string) => {
 export const fetchDashboardStatus = () => fetch(`${getN8nUrl()}${getWebhookPath('dashboard-status')}`);
 export const fetchDashboardSignals = () => fetch(`${getN8nUrl()}${getWebhookPath('dashboard-signals')}`);
 export const fetchDashboardDecisions = () => fetch(`${getN8nUrl()}${getWebhookPath('dashboard-decisions')}`);
+export const fetchDashboardCandles = (symbol: string) =>
+  fetch(`${getN8nUrl()}${getWebhookPath('dashboard-candles')}?symbol=${encodeURIComponent(symbol)}`);
+export const fetchUserSettings = () => fetch(`${getN8nUrl()}${getWebhookPath('settings-get')}`);
+export const saveUserSettings = (totalCapital: number, riskPctPerTrade: number) =>
+  fetch(`${getN8nUrl()}${getWebhookPath('settings-save')}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ total_capital: totalCapital, risk_pct_per_trade: riskPctPerTrade }),
+  });
 export const fetchAiChat = (message: string) => fetch(`${getN8nUrl()}${getWebhookPath('ai-chat')}`, {
   method: 'POST',
   headers: {

@@ -4,8 +4,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Target, AlertTriangle } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Target, AlertTriangle, LineChart } from 'lucide-react';
 import { fetchDashboardDecisions } from '@/lib/api';
+import { PriceChart } from '@/components/PriceChart';
+import { TradingViewChart } from '@/components/TradingViewChart';
+import { useSymbolLevels } from '@/hooks/useSymbolLevels';
 
 interface Decision {
   symbol: string;
@@ -20,6 +24,7 @@ interface Decision {
   reason: string;
   created_at: string;
   price_at_signal: number | null;
+  volatility_pct: number | null;
 }
 
 function signalBadgeVariant(signal: string) {
@@ -41,39 +46,9 @@ function isCrypto(symbol: string) {
   return /USDT$|BUSD$|USDC$/i.test(symbol);
 }
 
-// Goi y don gian dua tren risk_level - KHONG PHAI khuyen nghi dau tu chuyen nghiep.
-function suggestLeverage(riskLevel: string | null) {
-  if (riskLevel === 'HIGH') return 2;
-  if (riskLevel === 'MEDIUM') return 5;
-  return 10; // LOW hoac khong ro
-}
-
-function computeFuturesSuggestion(d: Decision) {
-  const price = d.price_at_signal !== null && d.price_at_signal !== undefined
-    ? parseFloat(String(d.price_at_signal))
-    : null;
-  const validPrice = price !== null && Number.isFinite(price) ? price : null;
-  const leverage = suggestLeverage(d.risk_level);
-  const isLong = d.adjusted_signal === 'BUY';
-  const isShort = d.adjusted_signal === 'SELL';
-
-  if (!validPrice || (!isLong && !isShort)) {
-    return { side: 'HOLD' as const, leverage, price: validPrice, tp: null, sl: null, liq: null };
-  }
-
-  // Bien do TP/SL co dinh theo risk level - vi du minh hoa, KHONG phai toi uu hoa that.
-  const tpPct = d.risk_level === 'HIGH' ? 0.015 : d.risk_level === 'MEDIUM' ? 0.02 : 0.03;
-  const slPct = d.risk_level === 'HIGH' ? 0.01 : d.risk_level === 'MEDIUM' ? 0.015 : 0.02;
-
-  const tp = isLong ? validPrice * (1 + tpPct) : validPrice * (1 - tpPct);
-  const sl = isLong ? validPrice * (1 - slPct) : validPrice * (1 + slPct);
-  // Uoc luong don gian, BO QUA maintenance margin rate thuc te cua san - chi mang tinh tham khao.
-  const liq = isLong ? validPrice * (1 - 1 / leverage) : validPrice * (1 + 1 / leverage);
-
-  return { side: isLong ? 'LONG' : 'SHORT', leverage, price: validPrice, tp, sl, liq };
-}
-
 function OrderSuggestionContent({ d }: { d: Decision }) {
+  const levels = useSymbolLevels(d.symbol, d.adjusted_signal, d.risk_level);
+
   if (!isCrypto(d.symbol)) {
     return (
       <div className="space-y-3 text-sm">
@@ -91,12 +66,16 @@ function OrderSuggestionContent({ d }: { d: Decision }) {
     );
   }
 
-  const s = computeFuturesSuggestion(d);
-
-  if (s.side === 'HOLD') {
+  if (levels.loading) {
+    return <div className="text-sm text-muted-foreground">Dang tai gia moi nhat va tinh ATR...</div>;
+  }
+  if (levels.error) {
+    return <div className="text-sm text-destructive">{levels.error}</div>;
+  }
+  if (levels.side === 'HOLD') {
     return (
       <div className="text-sm text-muted-foreground">
-        Tin hieu hien tai la <strong>HOLD</strong> hoac thieu du lieu gia - chua co goi y dat lenh Futures.
+        Tin hieu hien tai la <strong>HOLD</strong> hoac chua du du lieu ATR - chua co goi y dat lenh Futures.
       </div>
     );
   }
@@ -105,34 +84,58 @@ function OrderSuggestionContent({ d }: { d: Decision }) {
     <div className="space-y-3 text-sm">
       <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2">
         <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-        <span>Day chi la goi y tinh toan don gian theo cong thuc %, khong phai khuyen nghi dau tu chuyen nghiep. Ban tu kiem tra va chiu trach nhiem truoc khi dat lenh that.</span>
+        <span>Entry lay theo gia dong cua nen gan nhat (luon moi), TP/SL tinh theo ATR that cua coin.
+        Day chi la goi y tham khao, khong phai khuyen nghi dau tu chuyen nghiep. Ban tu kiem tra va chiu trach nhiem truoc khi dat lenh that.</span>
       </div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 font-mono">
         <span className="text-muted-foreground">Vi the</span>
-        <span className="font-bold">{s.side}</span>
+        <span className="font-bold">{levels.side}</span>
 
-        <span className="text-muted-foreground">Gia tham chieu</span>
-        <span>{s.price?.toFixed(4)}</span>
+        <span className="text-muted-foreground">Gia hien tai (Entry)</span>
+        <span>{levels.entry?.toFixed(4)}</span>
+
+        <span className="text-muted-foreground">ATR (14 nen)</span>
+        <span>{levels.atr?.toFixed(4)}</span>
 
         <span className="text-muted-foreground">Don bay de xuat</span>
-        <span>{s.leverage}x ({d.risk_level || 'N/A'})</span>
+        <span>{levels.leverage}x ({d.risk_level || 'N/A'})</span>
 
         <span className="text-muted-foreground">Che do ky quy</span>
         <span>Isolated (khuyen nghi, gioi han lo toi da)</span>
 
         <span className="text-muted-foreground">Take Profit</span>
-        <span className="text-success">{s.tp?.toFixed(4)}</span>
+        <span className="text-success">{levels.tp?.toFixed(4)}</span>
 
         <span className="text-muted-foreground">Stop Loss</span>
-        <span className="text-destructive">{s.sl?.toFixed(4)}</span>
+        <span className="text-destructive">{levels.sl?.toFixed(4)}</span>
 
         <span className="text-muted-foreground">Uoc tinh gia thanh ly</span>
-        <span className="text-destructive">{s.liq?.toFixed(4)} (uoc luong, chua tinh phi duy tri)</span>
+        <span className="text-destructive">
+          {levels.entry && levels.leverage
+            ? (levels.side === 'LONG'
+                ? levels.entry * (1 - 1 / levels.leverage)
+                : levels.entry * (1 + 1 / levels.leverage)
+              ).toFixed(4)
+            : '-'} (uoc luong, chua tinh phi duy tri)
+        </span>
 
         <span className="text-muted-foreground">Position size de xuat</span>
         <span>{d.position_size_pct ?? '-'}% von thong thuong</span>
       </div>
     </div>
+  );
+}
+
+function AIChartTab({ d }: { d: Decision }) {
+  const levels = useSymbolLevels(d.symbol, d.adjusted_signal, d.risk_level);
+  return (
+    <PriceChart
+      symbol={d.symbol}
+      entry={levels.entry}
+      tp={levels.tp}
+      sl={levels.sl}
+      className="h-full"
+    />
   );
 }
 
@@ -142,6 +145,7 @@ export default function Signals() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Decision | null>(null);
   const [orderTarget, setOrderTarget] = useState<Decision | null>(null);
+  const [chartTarget, setChartTarget] = useState<Decision | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -208,7 +212,12 @@ export default function Signals() {
             )}
             {decisions.map((d) => (
               <TableRow key={d.symbol} className="border-border/40 hover:bg-secondary/30">
-                <TableCell className="font-bold cursor-pointer" onClick={() => setSelected(d)}>{d.symbol}</TableCell>
+                <TableCell
+                  className="font-bold cursor-pointer hover:underline"
+                  onClick={() => setSelected(d)}
+                >
+                  {d.symbol}
+                </TableCell>
                 <TableCell>
                   <Badge variant={signalBadgeVariant(d.original_signal) as any} className="gap-1">
                     {signalIcon(d.original_signal)} {d.original_signal}
@@ -229,7 +238,10 @@ export default function Signals() {
                 <TableCell className="text-muted-foreground text-xs">
                   {new Date(d.created_at).toLocaleString('vi-VN')}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right space-x-2 whitespace-nowrap">
+                  <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => setChartTarget(d)}>
+                    <LineChart className="w-3.5 h-3.5" /> Chart
+                  </Button>
                   <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setOrderTarget(d)}>
                     <Target className="w-3.5 h-3.5" /> Dat lenh
                   </Button>
@@ -268,6 +280,37 @@ export default function Signals() {
             </DialogDescription>
           </DialogHeader>
           {orderTarget && <OrderSuggestionContent d={orderTarget} />}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal chart hop nhat: Tab 1 = AI tu ve Entry/TP/SL/Ho tro-Khang cu, Tab 2 = TradingView that */}
+      <Dialog open={!!chartTarget} onOpenChange={(open) => !open && setChartTarget(null)}>
+        <DialogContent className="!max-w-[98vw] !w-[98vw] !h-[92vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{chartTarget?.symbol} - Chart</DialogTitle>
+            <DialogDescription>
+              Tab "AI" tu ve Entry/Take Profit/Stop Loss/Ho tro-Khang cu tu du lieu he thong.
+              Tab "TradingView" la chart chuyen nghiep that tu Binance Futures.
+            </DialogDescription>
+          </DialogHeader>
+          <Tabs defaultValue="ai" className="flex-1 min-h-0 flex flex-col">
+            <TabsList className="shrink-0 w-fit">
+              <TabsTrigger value="ai">AI (Entry/TP/SL/Ho tro-Khang cu)</TabsTrigger>
+              <TabsTrigger value="tradingview">TradingView</TabsTrigger>
+            </TabsList>
+            <TabsContent value="ai" className="flex-1 min-h-0">
+              {chartTarget && <AIChartTab d={chartTarget} />}
+            </TabsContent>
+            <TabsContent value="tradingview" className="flex-1 min-h-0">
+              {chartTarget && isCrypto(chartTarget.symbol) ? (
+                <TradingViewChart symbol={chartTarget.symbol} className="h-full" />
+              ) : (
+                <div className="text-sm text-muted-foreground py-8 text-center">
+                  Chua ho tro chart cho cap tien Forex nay.
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </div>
